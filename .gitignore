@@ -1,0 +1,17 @@
+# Secrets
+.env
+stack/secrets/generated.env
+
+# Upstream checkouts, cloned separately (see README)
+stack/langfuse/
+stack/litellm/
+
+# Recordings may contain PII
+asr/samples/
+
+# Runtime output
+outputs/
+
+__pycache__/
+*.pyc
+.ruff_cache/
