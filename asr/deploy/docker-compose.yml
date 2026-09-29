@@ -1,0 +1,61 @@
+# ASR service. Included by stack/compose.yml, which also brings up the LLM
+# gateway it normalises through:
+#
+#   cd stack && docker compose up -d --build
+#   curl -s localhost:8400/health
+#   curl -F 'audio=@../asr/samples/<file>.mp3' localhost:8400/analyze
+#
+# CPU by default -- the LLM already holds most of the GPU. To move ASR onto
+# the GPU, set ASR_DEVICE=cuda and add overrides/asr-gpu.override.yml to
+# COMPOSE_FILE (stack/.env).
+
+services:
+  asr_service:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: audio-analytics-asr:latest
+    restart: unless-stopped
+    depends_on:
+      - litellm
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PYTHONUNBUFFERED: "1"
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
+      DEVICE: ${ASR_DEVICE:-cpu}
+      GENDER_WEIGHTS: /models/gender_classifier.pth
+      DIARIZATION_DIR: /models/speaker_diarization/community-1
+      # LLM normalisation goes through the in-stack LiteLLM gateway, so it is
+      # traced in Langfuse. `litellm` is a compose-network host, not loopback;
+      # LLM_INTERNAL_HOSTS lets it past the external-LLM guard.
+      # LITELLM_MASTER_KEY comes from stack/.env (copy it from
+      # stack/secrets/generated.env); unset, the LLM pass reports
+      # "missing LLM_API_KEY" and the raw transcript is returned.
+      LLM_BASE_URL: http://litellm:4000/v1
+      LLM_API_KEY: ${LITELLM_MASTER_KEY:-}
+      LLM_MODEL: local-llm
+      LLM_INTERNAL_HOSTS: litellm
+    volumes:
+      - gigaam-cache:/root/.cache/gigaam
+      - hf-cache:/cache/huggingface
+      # Gender CNN (read only when a request asks for gender) and the
+      # diarization pipeline (read on the first mono request).
+      - ${MODEL_WEIGHTS_DIR:-../model_weights}:/models:ro
+    ports:
+      - "8400:8400"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8400/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      # Warmup runs a real inference (ASR + VAD) before setup() returns and
+      # the port opens; generous headroom for a cold GigaAM checkpoint
+      # download on first run.
+      start_period: 180s
+
+volumes:
+  gigaam-cache:
+  hf-cache:

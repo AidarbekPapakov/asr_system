@@ -1,0 +1,62 @@
+# CI for asr_service, on this project's shell runner (docker is installed on
+# the runner host; every job runs *inside* a container via `docker run`/
+# `docker build` rather than directly on the shell, so nothing gets installed
+# on the host and the host's docker layer cache keeps rebuilds fast).
+#
+# Three stages, each gating the next:
+#   lint  -- ruff: syntax errors, undefined names, unused imports.
+#   build -- deploy/Dockerfile actually builds (catches a broken
+#            requirements.txt / Dockerfile before it reaches main), but doesn't push any images.
+#   test  -- the pure, CPU-only unit tests in tests/, run inside that image
+#            (it already has torch + gigaam, exactly the production env).
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - when: never
+
+variables:
+  RUNNER_TAG: "asr-service"
+  RUFF_VERSION: "0.16.8"
+  IMAGE: "asr-service:ci-$CI_COMMIT_SHORT_SHA"
+
+default:
+  tags:
+    - $RUNNER_TAG
+
+stages:
+  - lint
+  - build
+  - test
+
+lint:
+  stage: lint
+  script:
+    - docker run --rm -v "$CI_PROJECT_DIR":/src -w /src
+        "ghcr.io/astral-sh/ruff:$RUFF_VERSION" check .
+
+build:
+  stage: build
+  needs: ["lint"]
+  script:
+    - docker build -f deploy/Dockerfile -t "$IMAGE" .
+  artifacts:
+    expire_in: 1 days
+    paths:
+      - build/
+
+
+test:
+  stage: test
+  needs: ["build"]
+  script:
+    - docker run --rm -v "$CI_PROJECT_DIR/tests":/app/tests:ro "$IMAGE"
+        python -m unittest discover -s /app/tests -v
+
+cleanup:
+  stage: .post
+  needs: ["build"]
+  when: always
+  script:
+    - docker rmi "$IMAGE" || true

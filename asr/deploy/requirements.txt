@@ -1,0 +1,28 @@
+# ---------------------------------------------------------------------------
+# ASR service -- install into a CUDA 12.9 environment (sm_120/Blackwell needs
+# CUDA >= 12.8; see deploy/Dockerfile).
+#
+#   uv venv --python 3.11
+#   uv pip install --torch-backend=cu129 -r deploy/requirements.txt
+# ---------------------------------------------------------------------------
+
+# GigaAM from source: PyPI's `gigaam` is stale (0.1.0, torch<=2.5.1, no
+# multilingual checkpoints). extras: torch (torch/torchaudio),
+# longform (pyannote.audio 4.0.*, transformers 5.*, torchcodec -- needed for
+# vad_utils.get_pipeline).
+gigaam[torch,longform] @ git+https://github.com/salute-developers/GigaAM.git
+
+torch==2.10.*
+torchaudio==2.10.*
+
+# Serving
+litserve>=0.2.18
+python-multipart>=0.0.9   # LitServe multipart uploads
+soundfile>=0.12           # in-process decode; ffmpeg is the fallback
+librosa>=0.10              # resampling + the gender classifier's MFCC features
+
+# LLM normalisation and the HTTP client to the endpoint
+httpx>=0.27
+
+# The gender classifier's own dependencies (torch, librosa already listed)
+numpy>=1.26

@@ -1,0 +1,8 @@
+.git
+samples/
+model_weights/
+tests/
+.venv/
+__pycache__/
+*.pyc
+deploy/.env

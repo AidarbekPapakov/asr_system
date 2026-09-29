@@ -1,0 +1,55 @@
+"""
+analyze(path) -> dict. Transport only -- no business logic, no contract
+checking (see contract.py for that). Used by deploy/verify.py, and by any
+service that would rather import this than write the multipart POST itself.
+"""
+
+import json
+import os
+from typing import Any, Dict, Optional
+
+import httpx
+
+DEFAULT_URL = os.getenv("ASR_SERVICE_URL", "http://127.0.0.1:8400/analyze")
+
+
+def analyze(
+    audio_path: str,
+    *,
+    analyze_emotion: bool = False,
+    analyze_gender: bool = False,
+    run_llm: Optional[bool] = None,
+    speaker_map: Optional[Dict[int, str]] = None,
+    hotwords: Optional[Dict[str, float]] = None,
+    endpoint_url: Optional[str] = None,
+    timeout: float = 600.0,
+) -> Dict[str, Any]:
+    url = endpoint_url or DEFAULT_URL
+    data: Dict[str, str] = {
+        "analyze_emotion": "1" if analyze_emotion else "0",
+        "analyze_gender": "1" if analyze_gender else "0",
+    }
+    if speaker_map is not None:
+        data["speaker_map"] = json.dumps({str(k): v for k, v in speaker_map.items()})
+    if run_llm is not None:
+        data["run_llm"] = "1" if run_llm else "0"
+    if hotwords is not None:
+        data["hotwords"] = json.dumps(hotwords, ensure_ascii=False)
+
+    with open(audio_path, "rb") as fh:
+        files = {"audio": (os.path.basename(audio_path), fh, "application/octet-stream")}
+        response = httpx.post(url, data=data, files=files, timeout=timeout)
+    response.raise_for_status()
+
+    result = response.json()
+    if isinstance(result, dict) and "error" in result:
+        raise RuntimeError(f"asr_service returned an error for {audio_path}: {result['error']}")
+    return result
+
+# Example usage after a successful deploy:
+#   python src/client.py samples/<file>.mp3 [...]
+if __name__ == "__main__":
+    import sys
+
+    for path in sys.argv[1:]:
+        print(json.dumps(analyze(path, analyze_emotion=True, run_llm=True), indent=2, ensure_ascii=False))

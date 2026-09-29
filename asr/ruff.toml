@@ -1,0 +1,9 @@
+# Static checks only to catch real bugs (syntax errors, undefined names,
+# unused imports), not a style pass.
+target-version = "py311"
+line-length = 120
+
+[lint]
+# E9: syntax errors. F: pyflakes (undefined names, unused imports, etc).
+# E4/E7: import placement / statement errors pyflakes doesn't cover.
+select = ["E4", "E7", "E9", "F"]

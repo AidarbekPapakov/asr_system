@@ -1,0 +1,10 @@
+deploy/.env
+.env
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# model_weights
+*.pth
+*.pt
