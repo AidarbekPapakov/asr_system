@@ -1,0 +1,51 @@
+# Headless init: create an org/project/API keys/admin user on first boot so no
+# manual UI setup is needed. Secrets are interpolated from stack/.env
+# (generate them with secrets/gen.sh).
+# Compose merges the "environment" mapping key-by-key with the included
+# langfuse/docker-compose.yml, so only the keys listed here change; every
+# other upstream default (postgres/redis/clickhouse/minio creds, etc.) is
+# left untouched.
+services:
+  langfuse-worker:
+    environment:
+      SALT: ${SALT:?}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?}
+      LANGFUSE_INIT_ORG_ID: local-org
+      LANGFUSE_INIT_ORG_NAME: Local Org
+      LANGFUSE_INIT_PROJECT_ID: local-project
+      LANGFUSE_INIT_PROJECT_NAME: audio-analytics
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${PROJECT_PUBLIC_KEY:?}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${PROJECT_SECRET_KEY:?}
+      LANGFUSE_INIT_USER_EMAIL: papakovdar@gmail.com
+      LANGFUSE_INIT_USER_NAME: Aidar
+      LANGFUSE_INIT_USER_PASSWORD: ${USER_PASSWORD:?}
+
+  langfuse-web:
+    environment:
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?}
+      SALT: ${SALT:?}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?}
+      LANGFUSE_INIT_ORG_ID: local-org
+      LANGFUSE_INIT_ORG_NAME: Local Org
+      LANGFUSE_INIT_PROJECT_ID: local-project
+      LANGFUSE_INIT_PROJECT_NAME: audio-analytics
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${PROJECT_PUBLIC_KEY:?}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${PROJECT_SECRET_KEY:?}
+      LANGFUSE_INIT_USER_EMAIL: papakovdar@gmail.com
+      LANGFUSE_INIT_USER_NAME: Aidar
+      LANGFUSE_INIT_USER_PASSWORD: ${USER_PASSWORD:?}
+
+  # Port remaps: this box already has other services on these host ports --
+  # ClickHouse 8123 (airflow-docker stack), ClickHouse native 9000
+  # (item_factor_est stack) and a native PostgreSQL on 5432 (airflow_db).
+  # These publishes are debug conveniences only; langfuse-web/worker reach
+  # both services over the compose network by service name, so remapping the
+  # host side is safe.
+  clickhouse:
+    ports: !override
+      - "127.0.0.1:8124:8123"
+      - "127.0.0.1:9001:9000"
+
+  postgres:
+    ports: !override
+      - "127.0.0.1:5434:5432"

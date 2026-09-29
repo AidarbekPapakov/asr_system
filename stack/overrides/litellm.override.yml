@@ -1,0 +1,31 @@
+# - never build the litellm repo, just pull the published image
+# - mount our model_list/langfuse config and point the container at it
+# - remap db/prometheus ports off 5432/9090, which the Langfuse stack already
+#   uses (postgres, minio)
+services:
+  litellm:
+    build: !reset null
+    # Upstream sets `restart: always` on db and prometheus but not on litellm
+    # itself, so a Docker/WSL restart brings the whole stack back except the
+    # gateway. Match the rest of the stack.
+    restart: always
+    volumes:
+      - ../litellm_config.yaml:/app/config.yaml:ro
+    command: ["--config=/app/config.yaml"]
+    depends_on:
+      - db
+      - llamacpp
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?}
+      LANGFUSE_PUBLIC_KEY: ${PROJECT_PUBLIC_KEY:?}
+      LANGFUSE_SECRET_KEY: ${PROJECT_SECRET_KEY:?}
+      LANGFUSE_HOST: http://langfuse-web:3000
+      LLM_API_BASE: http://llamacpp:8080/v1
+
+  db:
+    ports: !override
+      - "127.0.0.1:5433:5432"
+
+  prometheus:
+    ports: !override
+      - "127.0.0.1:9092:9090"

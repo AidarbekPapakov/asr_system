@@ -1,0 +1,39 @@
+# Generic llama.cpp server for any HF GGUF model -- the stack's LLM backend
+# (see stack/compose.yml). Uses the stock upstream image,
+# so no Dockerfile. Which model to serve lives in llamacpp/model.env.
+#
+#   LLAMACPP_IMAGE_TAG  "server" (CPU, default) or "server-cuda" (GPU; also add
+#                       overrides/llamacpp-gpu.override.yml to COMPOSE_FILE).
+#   HF_TOKEN            only needed for gated HF repos.
+services:
+  llamacpp:
+    image: ghcr.io/ggml-org/llama.cpp:${LLAMACPP_IMAGE_TAG:-server}
+    restart: always
+    ports:
+      - "127.0.0.1:8081:8080"
+    env_file: model.env
+    environment:
+      LLAMA_CACHE: /cache
+      HF_TOKEN: ${HF_TOKEN:-}
+    volumes:
+      - ${HOME}/.models:/models:ro
+      - ../../outputs:/logs
+      - llamacpp-cache:/cache
+    command:
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8080"
+      - "--no-webui"
+      - "--log-file"
+      - "/logs/llamacpp_server.log"
+      - "--log-timestamps"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 180
+      start_period: 60s
+
+volumes:
+  llamacpp-cache:

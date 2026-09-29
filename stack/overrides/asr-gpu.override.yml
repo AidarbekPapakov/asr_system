@@ -1,0 +1,12 @@
+# Opt-in GPU attachment for the ASR service. Only takes effect when included
+# via COMPOSE_FILE (see stack/.env), together with ASR_DEVICE=cuda --
+# requires nvidia-container-toolkit registered with Docker.
+services:
+  asr_service:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: ["gpu"]

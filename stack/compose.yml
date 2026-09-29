@@ -1,0 +1,24 @@
+# Meta compose file: merges the upstream Langfuse and LiteLLM stacks, our
+# llama.cpp server and the ASR service into one project, so
+# `docker compose -f stack/compose.yml up -d` brings up everything.
+#
+# The upstream langfuse/ and litellm/ checkouts are left untouched; the
+# overrides/*.yml files only patch the handful of keys that need to change
+# (secrets, port remaps to avoid clashes, pointing litellm at our config).
+#
+# `name` is pinned: without it the project would be named after this
+# directory (`stack`) and collide with llm_local_inference_llama's stack.
+name: audio_analytics
+
+include:
+  - path:
+      - langfuse/docker-compose.yml
+      - overrides/langfuse.override.yml
+  - path:
+      - litellm/docker-compose.yml
+      - overrides/litellm.override.yml
+  # Any HF GGUF, chosen in llamacpp/model.env.
+  - path: llamacpp/compose.yml
+  # ASR + diarization. CPU by default; add overrides/asr-gpu.override.yml to
+  # COMPOSE_FILE to give it the GPU.
+  - path: ../asr/deploy/docker-compose.yml

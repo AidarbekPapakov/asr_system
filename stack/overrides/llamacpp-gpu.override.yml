@@ -1,0 +1,13 @@
+# Opt-in GPU attachment for llamacpp. Only takes effect when included via
+# COMPOSE_FILE (see stack/llamacpp/compose.yml) -- requires
+# nvidia-container-toolkit registered with Docker, since even a `count: 0`
+# device reservation fails outright when the toolkit isn't installed.
+services:
+  llamacpp:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: ["gpu"]

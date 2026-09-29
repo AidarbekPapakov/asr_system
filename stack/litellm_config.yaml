@@ -1,0 +1,19 @@
+model_list:
+  - model_name: local-llm
+    litellm_params:
+      model: openai/local-llm
+      api_base: os.environ/LLM_API_BASE
+      api_key: "not-needed"
+      timeout: 1800
+
+litellm_settings:
+  # This self-hosted Langfuse (v4) runs in events_only mode and rejects the
+  # legacy /api/public/ingestion endpoint the plain "langfuse" callback uses
+  # ("Rejected N event(s) ... events_only mode" in langfuse-web logs).
+  # langfuse_otel speaks the v4-native OTLP ingestion path instead, reusing
+  # the same LANGFUSE_PUBLIC_KEY/SECRET_KEY/HOST env vars.
+  success_callback: ["langfuse_otel"]
+  failure_callback: ["langfuse_otel"]
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
