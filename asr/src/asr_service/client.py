@@ -47,7 +47,7 @@ def analyze(
     return result
 
 # Example usage after a successful deploy:
-#   python src/client.py samples/<file>.mp3 [...]
+#   PYTHONPATH=src python -m asr_service.client samples/<file>.mp3 [...]
 if __name__ == "__main__":
     import sys
 

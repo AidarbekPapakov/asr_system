@@ -109,8 +109,8 @@ diarization ~10–14 s, VAD+ASR ~3 s, LLM ~24 s.
 | Which LLM to serve | `stack/llamacpp/model.env` |
 | GPU attachments | `COMPOSE_FILE` in `stack/.env` |
 | ASR on GPU | `ASR_DEVICE=cuda` in `stack/.env`, and add `:overrides/asr-gpu.override.yml` to `COMPOSE_FILE`. The LLM will probably need fewer GPU layers or less context to make room. |
-| ASR knobs (decoder, VAD, diarization speaker bounds, …) | `asr/deploy/.env`. Every option is listed in `asr/deploy/.env.example` and `asr/src/config.py`. |
-| Default hotwords | `asr/src/hotwords.py` (or per request with `hotwords`) |
+| ASR knobs (decoder, VAD, diarization speaker bounds, …) | `asr/deploy/.env`. Every option is listed in `asr/deploy/.env.example` and `asr/src/asr_service/config.py`. |
+| Default hotwords | `asr/src/asr_service/hotwords.py` (or per request with `hotwords`) |
 
 ## Troubleshooting
 

@@ -5,7 +5,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from config import env_bool, env_float, env_int
+from asr_service.config import env_bool, env_float, env_int
 
 
 class TestEnvBool(unittest.TestCase):

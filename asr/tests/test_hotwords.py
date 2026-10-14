@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from hotwords import HOTWORDS, MAX_HOTWORD_WEIGHT, MIN_HOTWORD_LEN, validate_hotwords
+from asr_service.hotwords import HOTWORDS, MAX_HOTWORD_WEIGHT, MIN_HOTWORD_LEN, validate_hotwords
 
 # A vocabulary big enough to accept every plausibly-valid word in these tests.
 VOCAB = list("абвгдежзийклмнопрстуфхцчшщъыьэюя -")

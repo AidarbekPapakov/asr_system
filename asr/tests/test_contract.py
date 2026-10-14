@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from contract import assert_contract
+from asr_service.contract import assert_contract
 
 
 def _valid_response():

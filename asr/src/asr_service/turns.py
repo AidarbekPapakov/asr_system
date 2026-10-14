@@ -13,9 +13,8 @@ never changes after construction.
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from asr import Word
-
-import config
+from asr_service import config
+from asr_service.asr import Word
 
 
 @dataclass

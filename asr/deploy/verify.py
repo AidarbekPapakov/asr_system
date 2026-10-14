@@ -35,9 +35,9 @@ sys.path.insert(0, str(SRC))
 
 import httpx  # noqa: E402
 
-import client as service_client  # noqa: E402
-import config  # noqa: E402
-import contract  # noqa: E402
+from asr_service import client as service_client  # noqa: E402
+from asr_service import config  # noqa: E402
+from asr_service import contract  # noqa: E402
 
 SAMPLES_DIR = REPO_ROOT / "samples"
 
@@ -286,7 +286,7 @@ def check_emotion_equivalence(sample_wav: Path) -> Check:
     try:
         from gigaam.preprocess import load_audio
 
-        import emotion
+        from asr_service import emotion
 
         model = emotion.ensure_loaded("cpu")
         ref_probs = model.get_probs(str(sample_wav))
@@ -304,8 +304,8 @@ def check_emotion_equivalence(sample_wav: Path) -> Check:
 def check_external_guard() -> Check:
     """In-process, no network: the server's own env is fixed at startup, so
     this exercises normalize.run_normalization directly instead."""
-    import normalize
-    from turns import Turn
+    from asr_service import normalize
+    from asr_service.turns import Turn
 
     c = Check()
     fake_turns = [Turn(id=1, channel=0, speaker="speaker_0", start=0.0, end=1.0, text="алло")]
@@ -329,8 +329,8 @@ def check_llm_normalization() -> Optional[Check]:
         print("    [SKIP] check 9 (LLM normalisation): LLM_BASE_URL/LLM_API_KEY/LLM_MODEL not set")
         return None
 
-    import normalize
-    from turns import Turn
+    from asr_service import normalize
+    from asr_service.turns import Turn
 
     turns_in = [
         Turn(id=1, channel=0, speaker="speaker_0", start=0.0, end=1.0, text="алло добрый день"),
@@ -361,18 +361,21 @@ def run_one(path: Path, **options: Any) -> Tuple[Dict[str, Any], float]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--start-server", action="store_true", help="launch src/server.py and stop it at exit")
+    parser.add_argument("--start-server", action="store_true", help="launch asr_service.server and stop it at exit")
     parser.add_argument("--stress", action="store_true", help="also run the 1040s stress recording")
     args = parser.parse_args()
 
     server_proc = None
     if args.start_server:
-        print(f"starting server: python src/server.py (cwd={REPO_ROOT})")
+        print(f"starting server: python -m asr_service.server (cwd={REPO_ROOT})")
         # Own process group: LitServe's inference workers do not die with the
         # parent, and an orphan holding port 8400 silently makes the next run
         # verify the previous build.
         server_proc = subprocess.Popen(
-            [sys.executable, "src/server.py"], cwd=str(REPO_ROOT), start_new_session=True
+            [sys.executable, "-m", "asr_service.server"],
+            cwd=str(REPO_ROOT),
+            env={**os.environ, "PYTHONPATH": str(SRC)},
+            start_new_session=True,
         )
 
     try:

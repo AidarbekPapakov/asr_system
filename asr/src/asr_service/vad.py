@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from gigaam.vad_utils import get_pipeline
 
-import config
+from asr_service import config
 
 _pipeline = None
 

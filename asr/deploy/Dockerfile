@@ -54,4 +54,4 @@ VOLUME ["/root/.cache/gigaam", "/cache/huggingface"]
 
 EXPOSE 8400
 
-CMD ["python", "src/server.py"]
+CMD ["python", "-m", "asr_service.server"]

@@ -14,9 +14,9 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 from gigaam.utils import AudioDataset
 
-import config
-from ctc_beam import CTCBeamDecoding
-from hotwords import HOTWORDS, sanitize_hotwords, validate_hotwords
+from asr_service import config
+from asr_service.ctc_beam import CTCBeamDecoding
+from asr_service.hotwords import HOTWORDS, sanitize_hotwords, validate_hotwords
 
 
 @dataclass

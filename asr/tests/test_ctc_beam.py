@@ -6,7 +6,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from ctc_beam import CTCBeamDecoding
+from asr_service.ctc_beam import CTCBeamDecoding
 
 
 def _peaked_row(target_idx: int, n_classes: int, target_p: float = 0.9) -> np.ndarray:

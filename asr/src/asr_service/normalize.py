@@ -32,8 +32,8 @@ from urllib.parse import urlparse
 
 import httpx
 
-import config
-from turns import Turn
+from asr_service import config
+from asr_service.turns import Turn
 
 logger = logging.getLogger("asr_service.normalize")
 

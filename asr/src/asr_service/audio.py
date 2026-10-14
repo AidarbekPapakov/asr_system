@@ -18,7 +18,7 @@ import librosa
 import numpy as np
 import soundfile as sf
 
-import config
+from asr_service import config
 
 
 @dataclass

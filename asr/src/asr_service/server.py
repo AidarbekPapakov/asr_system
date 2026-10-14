@@ -4,7 +4,7 @@ a whole recording: per-channel word timings, speech/silence metrics, and the mer
 turns -- plus emotion and gender on each turn when asked for. See contract.py
 for the guaranteed shape and pipeline.py for the actual work.
 
-    .venv/bin/python src/server.py
+    PYTHONPATH=src .venv/bin/python -m asr_service.server
     curl -F 'audio=@audio.mp3' localhost:8400/analyze
     curl -F 'audio=@audio.mp3' -F analyze_emotion=1 -F analyze_gender=1 localhost:8400/analyze
     curl -F 'audio=@audio.mp3' -F 'hotwords={"example": 6.0}' localhost:8400/analyze
@@ -20,11 +20,11 @@ import litserve as ls
 import torch
 from fastapi import Request
 
-import asr
-import audio as audio_mod
-import config
-import pipeline as pipeline_mod
-import vad
+from asr_service import asr
+from asr_service import audio as audio_mod
+from asr_service import config
+from asr_service import pipeline as pipeline_mod
+from asr_service import vad
 
 logger = logging.getLogger("asr_service.server")
 

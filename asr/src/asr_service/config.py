@@ -66,7 +66,7 @@ ASR_WINDOW_BATCH: int = env_int("ASR_WINDOW_BATCH", 16)
 # the container points it at the /models mount. Loaded lazily, on the first
 # request that asks for gender, so a wrong path fails then and not at start-up.
 GENDER_WEIGHTS: str = os.getenv("GENDER_WEIGHTS") or str(
-    Path(__file__).resolve().parent.parent / "model_weights" / "gender_classifier.pth"
+    Path(__file__).resolve().parent.parent.parent / "model_weights" / "gender_classifier.pth"
 )
 
 # VAD manually tuned constants.
@@ -86,7 +86,7 @@ TURN_GAP: float = env_float("TURN_GAP", 0.6)
 # unless bounded here.
 DIARIZE_MONO: bool = env_bool("DIARIZE_MONO", True)
 DIARIZATION_DIR: str = os.getenv("DIARIZATION_DIR") or str(
-    Path(__file__).resolve().parent.parent / "model_weights" / "speaker_diarization" / "community-1"
+    Path(__file__).resolve().parent.parent.parent / "model_weights" / "speaker_diarization" / "community-1"
 )
 DIARIZATION_MIN_SPEAKERS: Optional[int] = env_int("DIARIZATION_MIN_SPEAKERS", 0) or None
 DIARIZATION_MAX_SPEAKERS: Optional[int] = env_int("DIARIZATION_MAX_SPEAKERS", 0) or None

@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from gigaam.utils import AudioDataset
 
-import config
+from asr_service import config
 
 _model = None
 _device = None

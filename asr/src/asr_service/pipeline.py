@@ -15,15 +15,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-import asr
-import audio as audio_mod
-import config
-import diarization
-import emotion
-import gender
-import normalize
-import turns as turns_mod
-import vad
+from asr_service import asr
+from asr_service import audio as audio_mod
+from asr_service import config, diarization, emotion, gender, normalize
+from asr_service import turns as turns_mod
+from asr_service import vad
 
 logger = logging.getLogger("asr_service.pipeline")
 

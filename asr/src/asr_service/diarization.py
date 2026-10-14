@@ -15,7 +15,7 @@ from typing import Any, List
 import numpy as np
 import torch
 
-import config
+from asr_service import config
 
 logger = logging.getLogger("asr_service.diarization")
 

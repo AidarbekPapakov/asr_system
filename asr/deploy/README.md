@@ -7,7 +7,7 @@ uv venv --python 3.11 .venv
 uv pip install --python .venv/bin/python --torch-backend=cu129 -r deploy/requirements.txt
 cp deploy/.env.example deploy/.env   # fill in HF_TOKEN at least
 set -a; source deploy/.env; set +a
-PYTHONPATH=src .venv/bin/python src/server.py
+PYTHONPATH=src .venv/bin/python -m asr_service.server
 ```
 
 ```bash

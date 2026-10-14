@@ -7,8 +7,8 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-import config
-from diarization import tracks_from_annotation
+from asr_service import config
+from asr_service.diarization import tracks_from_annotation
 
 
 class FakeAnnotation:
