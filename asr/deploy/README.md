@@ -65,8 +65,13 @@ gender weights yourself (see `model_weights/README.md`) -- unless
 
 ## CI/CD
 
-`../.gitlab-ci.yml` runs on every MR and on `main`: lint, then the image builds,
-then `tests/` runs inside that image. Reproduce it locally with:
+There are two pipelines. `../.gitlab-ci.yml` runs the full thing (lint, the
+13 GB image build, then `tests/` with torch/gigaam inside that image) on a
+self-hosted runner; `../../.github/workflows/ci.yml` runs on GitHub's free
+runners instead, so it only lints and runs the tests that don't need
+torch/gigaam (those are skipped via the `requires_models` marker on
+`test_ctc_beam.py` / `test_diarization.py`). Reproduce the GitLab one locally
+with:
 
 ```bash
 docker run --rm -v "$PWD/..":/src -w /src ghcr.io/astral-sh/ruff:0.16.8 check .
