@@ -14,7 +14,9 @@ from typing import Any
 _TURN_KEYS = ("id", "channel", "speaker", "start", "end", "text", "text_raw", "lang", "overlap")
 _WORD_KEYS = ("start", "end", "text")
 _VAD_KEYS = ("total_speech_time", "total_silence_time", "speech_ratio", "regions")
-_META_KEYS = ("asr_model", "decoder", "device", "duration_sec", "n_channels", "diarization", "llm", "timings", "version")
+_META_KEYS = (
+    "asr_model", "decoder", "device", "duration_sec", "n_channels", "diarization", "llm", "timings", "version",
+)
 _EMOTION_LABELS = {"negative", "neutral", "positive"}
 _GENDER_LABELS = {"male", "female"}
 

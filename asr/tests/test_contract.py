@@ -26,18 +26,25 @@ def _valid_response():
             {
                 "index": 0,
                 "words": [{"start": 0.0, "end": 0.4, "text": "алло"}],
-                "vad": {"total_speech_time": 1.0, "total_silence_time": 0.0, "speech_ratio": 1.0, "regions": [[0.0, 1.0]]},
+                "vad": {
+                    "total_speech_time": 1.0, "total_silence_time": 0.0,
+                    "speech_ratio": 1.0, "regions": [[0.0, 1.0]],
+                },
             },
             {
                 "index": 1,
                 "words": [],
-                "vad": {"total_speech_time": 1.0, "total_silence_time": 0.0, "speech_ratio": 1.0, "regions": [[1.0, 2.0]]},
+                "vad": {
+                    "total_speech_time": 1.0, "total_silence_time": 0.0,
+                    "speech_ratio": 1.0, "regions": [[1.0, 2.0]],
+                },
             },
         ],
         "meta": {
             "asr_model": "multilingual_large_ctc", "decoder": "beam", "device": "cpu",
             "duration_sec": 2.0, "n_channels": 2,
-            "diarization": {"applied": False, "n_speakers": None, "reason": "stereo"}, "llm": {}, "timings": {}, "version": 2,
+            "diarization": {"applied": False, "n_speakers": None, "reason": "stereo"},
+            "llm": {}, "timings": {}, "version": 2,
         },
     }
 

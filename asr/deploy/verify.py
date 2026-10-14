@@ -213,7 +213,10 @@ def run_functional_checks(res: dict[str, Any], is_mono: bool, analyses_on: bool)
         f"3  no word straddles silence > MERGE_GAP ({config.MERGE_GAP}s)",
         not silence_problems, "; ".join(silence_problems[:3]),
     )
-    c.note(f"max word span {_max_word_span(res):.2f}s (reported, not asserted -- GigaAM glues words across short pauses)")
+    c.note(
+        f"max word span {_max_word_span(res):.2f}s "
+        "(reported, not asserted -- GigaAM glues words across short pauses)"
+    )
 
     order_problems = _word_order_problems(res)
     c.record("4  words ordered and non-overlapping per channel", not order_problems, "; ".join(order_problems[:3]))
@@ -229,7 +232,10 @@ def run_functional_checks(res: dict[str, Any], is_mono: bool, analyses_on: bool)
 
     if is_mono:
         diar = res["meta"]["diarization"]
-        c.record("8  mono input: diarized into >=1 speaker channel", diar["applied"] and diar["n_speakers"] >= 1, str(diar))
+        c.record(
+            "8  mono input: diarized into >=1 speaker channel",
+            diar["applied"] and diar["n_speakers"] >= 1, str(diar),
+        )
 
     return c
 
@@ -259,7 +265,10 @@ def check_gating_and_laziness(path: Path, server_pid: int | None) -> Check:
     same_text = [t["text_raw"] for t in res_off["turns"]] == [t["text_raw"] for t in res_on["turns"]]
     c.record("11 the analyses are additive: identical words and text_raw either way", same_words and same_text)
 
-    c.note(f"wall: flags off {wall_off:.2f}s | first flags-on {wall_on_cold:.2f}s (pays the model load) | second {wall_on_warm:.2f}s")
+    c.note(
+        f"wall: flags off {wall_off:.2f}s | first flags-on {wall_on_cold:.2f}s "
+        f"(pays the model load) | second {wall_on_warm:.2f}s"
+    )
     # On a GPU the emotion checkpoint lands in VRAM, so host RSS barely moves
     # and the second number is the one that shows the lazy load; on CPU it is
     # the other way round.
@@ -296,7 +305,10 @@ def check_emotion_equivalence(sample_wav: Path) -> Check:
         batch_probs = emotion.probs_batch([load_audio(str(sample_wav)).numpy()])[0]
 
         max_diff = max(abs(ref_probs[k] - batch_probs.get(k, 0.0)) for k in ref_probs)
-        c.record("7  emotion.probs_batch vs GigaAMEmo.get_probs, max abs diff < 1e-3", max_diff < 1e-3, f"max diff {max_diff:.5f}")
+        c.record(
+            "7  emotion.probs_batch vs GigaAMEmo.get_probs, max abs diff < 1e-3",
+            max_diff < 1e-3, f"max diff {max_diff:.5f}",
+        )
     except Exception as exc:                                          # noqa: BLE001
         c.record("7  emotion.probs_batch vs GigaAMEmo.get_probs", False, f"check itself failed: {exc}")
     return c
@@ -442,7 +454,8 @@ def main() -> int:
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
             futures = [pool.submit(run_one, SAMPLES_DIR / MEDIAN_SAMPLE) for _ in range(4)]
             walls = [f.result()[1] for f in futures]
-        print(f"    4 concurrent requests: total wall {time.perf_counter() - t0:.2f}s, per-request {['%.2f' % w for w in walls]}")
+        per_request = [f"{w:.2f}" for w in walls]
+        print(f"    4 concurrent requests: total wall {time.perf_counter() - t0:.2f}s, per-request {per_request}")
         print(f"    GPU memory used (whole device, best-effort): {gpu_mem_used_mb()} MB")
         print()
 
