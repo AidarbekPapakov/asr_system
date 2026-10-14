@@ -152,12 +152,12 @@ def analyze_audio(
     turns_out = [asdict(t) for t in turns]
     if analyze_emotion and turns:
         t0 = time.perf_counter()
-        for turn_out, data in zip(turns_out, _emotion_per_turn(turns, channels)):
+        for turn_out, data in zip(turns_out, _emotion_per_turn(turns, channels), strict=True):
             turn_out["emotion"] = data
         timings["emotion"] = round(time.perf_counter() - t0, 3)
     if analyze_gender and turns:
         t0 = time.perf_counter()
-        for turn_out, data in zip(turns_out, _gender_per_turn(turns, channels)):
+        for turn_out, data in zip(turns_out, _gender_per_turn(turns, channels), strict=True):
             turn_out["gender"] = data
         timings["gender"] = round(time.perf_counter() - t0, 3)
 

@@ -144,7 +144,7 @@ def _word_order_problems(res: dict[str, Any]) -> list[str]:
     which is what stops the same audio being transcribed into two places."""
     problems = []
     for ch in res["channels"]:
-        for a, b in zip(ch["words"], ch["words"][1:]):
+        for a, b in zip(ch["words"], ch["words"][1:], strict=False):  # deliberately uneven: consecutive pairs
             if b["start"] < a["end"] - ROUND_EPS:
                 problems.append(f"channel {ch['index']}: {a} then {b}")
     return problems
@@ -172,7 +172,11 @@ def _word_silence_problems(res: dict[str, Any]) -> list[str]:
     problems = []
     for ch in res["channels"]:
         regions = ch["vad"]["regions"]
-        gaps = [(a[1], b[0]) for a, b in zip(regions, regions[1:]) if b[0] - a[1] > config.MERGE_GAP]
+        gaps = [
+            (a[1], b[0])
+            for a, b in zip(regions, regions[1:], strict=False)  # deliberately uneven: consecutive pairs
+            if b[0] - a[1] > config.MERGE_GAP
+        ]
         for w in ch["words"]:
             for gap_start, gap_end in gaps:
                 silent = min(w["end"], gap_end) - max(w["start"], gap_start)
@@ -345,7 +349,7 @@ def check_llm_normalization() -> Check | None:
     ids_out = {t.id for t in result.turns}
     c.record("9  returned id set equals input id set", ids_in == ids_out, f"in={ids_in} out={ids_out}")
     c.record("9  validate_llm_turns did not fall back", result.applied, result.reason)
-    raw_preserved = all(out.text_raw == orig.text for out, orig in zip(result.turns, turns_in))
+    raw_preserved = all(out.text_raw == orig.text for out, orig in zip(result.turns, turns_in, strict=True))
     c.record("9  text_raw preserved", raw_preserved)
     return c
 
