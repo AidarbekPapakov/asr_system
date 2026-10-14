@@ -137,8 +137,8 @@ def build_server() -> ls.LitServer:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-    print(
-        f"ASR service | {config.ASR_MODEL_NAME} | {_resolve_device()} | "
-        f"decoder={config.DECODER} | run_llm={config.RUN_LLM} | port {config.PORT}"
+    logger.info(
+        "ASR service | %s | %s | decoder=%s | run_llm=%s | port %s",
+        config.ASR_MODEL_NAME, _resolve_device(), config.DECODER, config.RUN_LLM, config.PORT,
     )
     build_server().run(port=config.PORT, generate_client_file=False)

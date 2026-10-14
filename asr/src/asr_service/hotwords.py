@@ -8,8 +8,11 @@ Weights are in natural log units added to the beam ranking, so 6.0 is worth
 ~400x from the base.
 """
 
+import logging
 import math
 from collections.abc import Sequence
+
+logger = logging.getLogger("asr_service.hotwords")
 
 HOTWORDS: dict[str, float] = {
     # "example": 5.0,
@@ -62,7 +65,7 @@ def sanitize_hotwords(
     """Drop hotwords that cannot work, saying why. See `validate_hotwords`."""
     ok, rejected = validate_hotwords(hotwords, vocab)
     if verbose:
-        print(f"hotwords: {len(ok)} accepted, {len(rejected)} rejected")
+        logger.info("hotwords: %d accepted, %d rejected", len(ok), len(rejected))
         for word, why in rejected.items():
-            print(f"  rejected {word!r}: {why}")
+            logger.warning("rejected %r: %s", word, why)
     return ok
