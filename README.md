@@ -48,12 +48,15 @@ git -C stack/litellm checkout db37977307853b9d2c2f740ca2cbcaefef06982c
 # 2. HF token for the ASR service
 echo 'HF_TOKEN=hf_...' > asr/deploy/.env
 
-# 3. Stack config and secrets (LiteLLM master key, Langfuse keys and admin password)
+# 3. Diarization snapshot (gated on HF; accept the terms first, see asr/model_weights/README.md)
+HF_TOKEN=hf_... asr/scripts/download_weights.sh
+
+# 4. Stack config and secrets (LiteLLM master key, Langfuse keys and admin password)
 cd stack
 cp .env.example .env
 sh secrets/gen.sh >> .env
 
-# 4. Build and start everything
+# 5. Build and start everything
 docker compose up -d --build
 docker compose ps
 ```
