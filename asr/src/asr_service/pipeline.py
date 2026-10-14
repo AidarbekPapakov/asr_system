@@ -11,15 +11,13 @@ models -- like diarization's -- load on first use rather than at start-up.
 import logging
 import time
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
-from asr_service import asr
+from asr_service import asr, config, diarization, emotion, gender, normalize, vad
 from asr_service import audio as audio_mod
-from asr_service import config, diarization, emotion, gender, normalize
 from asr_service import turns as turns_mod
-from asr_service import vad
 
 logger = logging.getLogger("asr_service.pipeline")
 
@@ -41,7 +39,7 @@ def _turn_wav(wav: np.ndarray, turn: turns_mod.Turn) -> np.ndarray:
     return wav[int(start * config.SAMPLE_RATE) : int(end * config.SAMPLE_RATE)]
 
 
-def _emotion_per_turn(turns: List[turns_mod.Turn], channels: List[np.ndarray]) -> List[Dict[str, Any]]:
+def _emotion_per_turn(turns: list[turns_mod.Turn], channels: list[np.ndarray]) -> list[dict[str, Any]]:
     """One {label, distribution} per turn, index-aligned with `turns`.
 
     Chunked for the same reason transcribe_windows is: collate pads a batch to
@@ -49,7 +47,7 @@ def _emotion_per_turn(turns: List[turns_mod.Turn], channels: List[np.ndarray]) -
     as one batch.
     """
     emotion.ensure_loaded(asr.get_device())
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for start in range(0, len(turns), config.ASR_WINDOW_BATCH):
         batch = turns[start : start + config.ASR_WINDOW_BATCH]
         wavs = [_turn_wav(channels[t.channel], t) for t in batch]
@@ -59,11 +57,11 @@ def _emotion_per_turn(turns: List[turns_mod.Turn], channels: List[np.ndarray]) -
     return out
 
 
-def _gender_per_turn(turns: List[turns_mod.Turn], channels: List[np.ndarray]) -> List[Dict[str, Any]]:
+def _gender_per_turn(turns: list[turns_mod.Turn], channels: list[np.ndarray]) -> list[dict[str, Any]]:
     """One {label, distribution} per turn. The CNN scores fixed 5-second
     chunks, so a turn's P(male) is the mean over its chunks."""
     gender.ensure_loaded(asr.get_device(), config.GENDER_WEIGHTS)
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     for turn in turns:
         p_male = float(np.mean(gender.p_male_per_chunk(_turn_wav(channels[turn.channel], turn))))
         out.append({
@@ -73,7 +71,7 @@ def _gender_per_turn(turns: List[turns_mod.Turn], channels: List[np.ndarray]) ->
     return out
 
 
-def _diarize(wav: np.ndarray) -> Tuple[List[np.ndarray], Dict[str, Any]]:
+def _diarize(wav: np.ndarray) -> tuple[list[np.ndarray], dict[str, Any]]:
     """Mono -> one channel per speaker. Falls back to the single input
     channel when nobody speaks or the pipeline cannot load or run, reporting
     why in meta.diarization rather than failing the request."""
@@ -93,12 +91,12 @@ def analyze_audio(
     *,
     analyze_emotion: bool = False,
     analyze_gender: bool = False,
-    run_llm: Optional[bool] = None,
-    speaker_map: Optional[Dict[int, str]] = None,
-    hotwords: Optional[Dict[str, float]] = None,
-) -> Dict[str, Any]:
+    run_llm: bool | None = None,
+    speaker_map: dict[int, str] | None = None,
+    hotwords: dict[str, float] | None = None,
+) -> dict[str, Any]:
     t_start = time.perf_counter()
-    timings: Dict[str, float] = {}
+    timings: dict[str, float] = {}
 
     # Applied on every request, defaults are used if no words provided.
     hotwords_meta = asr.use_hotwords(hotwords)
@@ -121,8 +119,8 @@ def analyze_audio(
         channel_speaker.update({int(k): v for k, v in speaker_map.items()})
 
     t0 = time.perf_counter()
-    channels_out: List[Dict[str, Any]] = []
-    channel_words: Dict[int, List[asr.Word]] = {}
+    channels_out: list[dict[str, Any]] = []
+    channel_words: dict[int, list[asr.Word]] = {}
     for index, wav in enumerate(channels):
         regions = vad.vad_regions(wav)
         words = asr.transcribe_windows(wav, vad.group_regions(regions, bundle.duration_sec))

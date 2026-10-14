@@ -9,7 +9,7 @@ request, so their absence is correct, not a violation. What IS asserted is that
 whatever is present is well formed.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 _TURN_KEYS = ("id", "channel", "speaker", "start", "end", "text", "text_raw", "lang", "overlap")
 _WORD_KEYS = ("start", "end", "text")
@@ -19,7 +19,7 @@ _EMOTION_LABELS = {"negative", "neutral", "positive"}
 _GENDER_LABELS = {"male", "female"}
 
 
-def _assert_distribution(block: Dict[str, Any], labels: set, where: str) -> None:
+def _assert_distribution(block: dict[str, Any], labels: set, where: str) -> None:
     assert "label" in block and "distribution" in block, f"{where}: missing label/distribution"
     assert block["label"] in labels, f"{where}: unexpected label {block['label']!r}"
     assert set(block["distribution"]) == labels, f"{where}: distribution keys {set(block['distribution'])}"
@@ -27,7 +27,7 @@ def _assert_distribution(block: Dict[str, Any], labels: set, where: str) -> None
     assert abs(total - 1.0) < 1e-2, f"{where}: distribution sums to {total}, not 1.0"
 
 
-def assert_contract(res: Dict[str, Any]) -> None:
+def assert_contract(res: dict[str, Any]) -> None:
     for key in ("turns", "channels", "meta"):
         assert key in res, f"missing top-level key: {key!r}"
 

@@ -26,8 +26,8 @@ masking is not in this build). Refused unless allow_external=True
 import json
 import logging
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from typing import Dict, List, Optional, Sequence, Tuple
 from urllib.parse import urlparse
 
 import httpx
@@ -76,7 +76,7 @@ Every key and every string is in double quotes; no trailing commas.
 """
 
 
-def build_messages(turns: List[Turn], glossary: Sequence[str]) -> List[dict]:
+def build_messages(turns: list[Turn], glossary: Sequence[str]) -> list[dict]:
     payload_turns = [{"id": t.id, "speaker": t.speaker, "text": t.text} for t in turns]
     user = ""
     if glossary:
@@ -113,10 +113,10 @@ def _extract_json(text: str) -> dict:
     return parsed
 
 
-def validate_llm_turns(original: List[Turn], returned: dict) -> Tuple[List[Turn], bool]:
+def validate_llm_turns(original: list[Turn], returned: dict) -> tuple[list[Turn], bool]:
     """Apply the reply only if the ids round-trip exactly; otherwise keep
     ours. Returns (turns, applied)."""
-    by_id: Dict[int, Tuple[str, Optional[str]]] = {}
+    by_id: dict[int, tuple[str, str | None]] = {}
     for item in returned.get("turns", []):
         try:
             by_id[int(item["id"])] = (str(item["text"]), item.get("lang"))
@@ -145,18 +145,18 @@ def is_external(base_url: str) -> bool:
 
 @dataclass
 class NormalizeResult:
-    turns: List[Turn]
+    turns: list[Turn]
     ran: bool
     applied: bool
     reason: str
 
 
 def run_normalization(
-    turns: List[Turn],
+    turns: list[Turn],
     glossary: Sequence[str] = (),
-    base_url: Optional[str] = None,
-    api_key: Optional[str] = None,
-    model_name: Optional[str] = None,
+    base_url: str | None = None,
+    api_key: str | None = None,
+    model_name: str | None = None,
     allow_external: bool = False,
     timeout: float = 120.0,
 ) -> NormalizeResult:

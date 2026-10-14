@@ -20,7 +20,6 @@ instead.
 """
 
 import io
-from typing import List, Union
 
 import librosa
 import numpy as np
@@ -90,11 +89,11 @@ class GenderPredictor:
         self.model.to(self.device)
         self.model.eval()
 
-    def p_male_per_chunk(self, audio: Union[str, io.BytesIO, bytes, np.ndarray]) -> List[float]:
+    def p_male_per_chunk(self, audio: str | io.BytesIO | bytes | np.ndarray) -> list[float]:
         """P(male) for each 5-second chunk the clip is split into (the last
         chunk zero-padded if shorter)."""
         mfcc_fragments = self._extract_mfcc(audio)
-        out: List[float] = []
+        out: list[float] = []
         for mfcc in mfcc_fragments:
             feat = torch.FloatTensor(mfcc).unsqueeze(0)          # (1, n_mfcc, T) -- channel dim
             with torch.no_grad():
@@ -103,7 +102,7 @@ class GenderPredictor:
             out.append(1.0 - p_female)
         return out
 
-    def _extract_mfcc(self, audio) -> List[np.ndarray]:
+    def _extract_mfcc(self, audio) -> list[np.ndarray]:
         waveforms = self._load_audio(audio)
         return [
             librosa.feature.mfcc(
@@ -113,7 +112,7 @@ class GenderPredictor:
             for w in waveforms
         ]
 
-    def _load_audio(self, audio) -> List[np.ndarray]:
+    def _load_audio(self, audio) -> list[np.ndarray]:
         if isinstance(audio, np.ndarray):
             wv = audio.astype(np.float32)   # already 16 kHz mono -- audio.py's contract
         else:
@@ -162,7 +161,7 @@ def ensure_loaded(device: str, weights_path: str) -> GenderPredictor:
     return _predictor if _predictor is not None else load_gender_model(device, weights_path)
 
 
-def p_male_per_chunk(wav: np.ndarray) -> List[float]:
+def p_male_per_chunk(wav: np.ndarray) -> list[float]:
     if _predictor is None:
         raise RuntimeError("gender model not loaded; call ensure_loaded() first")
     return _predictor.p_male_per_chunk(wav)

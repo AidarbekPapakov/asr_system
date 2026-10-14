@@ -6,7 +6,7 @@ service that would rather import this than write the multipart POST itself.
 
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 
@@ -18,14 +18,14 @@ def analyze(
     *,
     analyze_emotion: bool = False,
     analyze_gender: bool = False,
-    run_llm: Optional[bool] = None,
-    speaker_map: Optional[Dict[int, str]] = None,
-    hotwords: Optional[Dict[str, float]] = None,
-    endpoint_url: Optional[str] = None,
+    run_llm: bool | None = None,
+    speaker_map: dict[int, str] | None = None,
+    hotwords: dict[str, float] | None = None,
+    endpoint_url: str | None = None,
     timeout: float = 600.0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     url = endpoint_url or DEFAULT_URL
-    data: Dict[str, str] = {
+    data: dict[str, str] = {
         "analyze_emotion": "1" if analyze_emotion else "0",
         "analyze_gender": "1" if analyze_gender else "0",
     }

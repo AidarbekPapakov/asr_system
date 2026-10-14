@@ -10,7 +10,7 @@ treating each track as a channel.
 
 import logging
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 import numpy as np
 import torch
@@ -51,7 +51,7 @@ def ensure_loaded(device: str):
     return _pipeline if _pipeline is not None else load_diarization_pipeline(device)
 
 
-def speaker_tracks(wav: np.ndarray) -> List[np.ndarray]:
+def speaker_tracks(wav: np.ndarray) -> list[np.ndarray]:
     """One 16 kHz mono channel -> one track per detected speaker. Returns []
     if nobody speaks."""
     if _pipeline is None:
@@ -69,7 +69,7 @@ def speaker_tracks(wav: np.ndarray) -> List[np.ndarray]:
     return tracks
 
 
-def tracks_from_annotation(annotation: Any, wav: np.ndarray) -> List[np.ndarray]:
+def tracks_from_annotation(annotation: Any, wav: np.ndarray) -> list[np.ndarray]:
     """Cut `wav` into per-speaker tracks, ordered by each speaker's first
     onset, so the first to speak lands on track 0."""
     segments_by_speaker: dict = {}
@@ -78,7 +78,7 @@ def tracks_from_annotation(annotation: Any, wav: np.ndarray) -> List[np.ndarray]
 
     order = sorted(segments_by_speaker, key=lambda spk: min(s.start for s in segments_by_speaker[spk]))
 
-    tracks: List[np.ndarray] = []
+    tracks: list[np.ndarray] = []
     for speaker in order:
         track = np.zeros(len(wav), dtype=np.float32)
         for segment in segments_by_speaker[speaker]:

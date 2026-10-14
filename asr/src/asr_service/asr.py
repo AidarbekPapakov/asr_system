@@ -9,7 +9,7 @@ timestamp.
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import torch
 from gigaam.utils import AudioDataset
@@ -30,12 +30,12 @@ class Word:
 _model = None
 _greedy_decoding = None
 _beam_decoding = None
-_device: Optional[str] = None
-_default_hotwords: Dict[str, float] = {}
-_vocab: List[str] = []
+_device: str | None = None
+_default_hotwords: dict[str, float] = {}
+_vocab: list[str] = []
 
 
-def get_device() -> Optional[str]:
+def get_device() -> str | None:
     return _device
 
 
@@ -62,7 +62,7 @@ def set_decoder(name: str) -> None:
     _model.decoding = _beam_decoding if name == "beam" else _greedy_decoding
 
 
-def use_hotwords(hotwords: Optional[Dict[str, float]]) -> Dict[str, Any]:
+def use_hotwords(hotwords: dict[str, float] | None) -> dict[str, Any]:
     """Apply this request's hotwords to the shared beam decoder, or restore
     the defaults when `hotwords` is None/empty.
 
@@ -93,8 +93,8 @@ def use_hotwords(hotwords: Optional[Dict[str, float]]) -> Dict[str, Any]:
 
 @torch.inference_mode()
 def transcribe_windows(
-    wav, windows: List[Tuple[float, float]], chunk_size: Optional[int] = None
-) -> List[Word]:
+    wav, windows: list[tuple[float, float]], chunk_size: int | None = None
+) -> list[Word]:
     """Transcribe every window; return words on the absolute clock.
 
     Windows are chunked (chunk_size, default config.ASR_WINDOW_BATCH) so a
@@ -107,7 +107,7 @@ def transcribe_windows(
         return []
     chunk_size = chunk_size or config.ASR_WINDOW_BATCH
 
-    words: List[Word] = []
+    words: list[Word] = []
     for start in range(0, len(windows), chunk_size):
         batch_windows = windows[start : start + chunk_size]
         segments = [

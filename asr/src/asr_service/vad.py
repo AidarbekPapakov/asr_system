@@ -2,7 +2,6 @@
 pyannote's VAD, window grouping, and the per-channel speech/silence metrics.
 """
 
-from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -20,7 +19,7 @@ def load_vad_pipeline(device: str):
     return _pipeline
 
 
-def vad_regions(wav: np.ndarray) -> List[Tuple[float, float]]:
+def vad_regions(wav: np.ndarray) -> list[tuple[float, float]]:
     """
     Speech regions in one channel, as (start, end) seconds. Fed the
     waveform in memory -- no temp file, no re-decode through ffmpeg.
@@ -33,13 +32,13 @@ def vad_regions(wav: np.ndarray) -> List[Tuple[float, float]]:
 
 
 def group_regions(
-    regions: List[Tuple[float, float]], duration: float
-) -> List[Tuple[float, float]]:
+    regions: list[tuple[float, float]], duration: float
+) -> list[tuple[float, float]]:
     """
     Group speech regions into ASR windows.
     """
 
-    merged: List[List[float]] = []
+    merged: list[list[float]] = []
     for start, end in regions:
         if (
             merged
@@ -70,7 +69,7 @@ def group_regions(
     # an overlap on its own: `merged` starts a new window when adding the next
     # region would exceed MAX_SEG, and that split can fall in a gap narrower
     # than 2*PAD.
-    result: List[Tuple[float, float]] = []
+    result: list[tuple[float, float]] = []
     prev_end = 0.0
     for a, b in windows:
         a, b = round(max(a, prev_end), 3), round(b, 3)
@@ -81,7 +80,7 @@ def group_regions(
     return result
 
 
-def channel_metrics(regions: List[Tuple[float, float]], duration: float) -> Dict:
+def channel_metrics(regions: list[tuple[float, float]], duration: float) -> dict:
     """
     Computed from the RAW pyannote regions, before grouping.
     """

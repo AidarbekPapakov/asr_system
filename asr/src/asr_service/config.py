@@ -6,7 +6,6 @@ live in deploy/.env (gitignored), this module only names them.
 
 import os
 from pathlib import Path
-from typing import Optional, Tuple
 
 # pyannote.audio 4.x ships OpenTelemetry tracing that POSTs to
 # https://otel.pyannote.ai on every model init and inference. Audio does
@@ -21,7 +20,7 @@ os.environ.setdefault("PYANNOTE_METRICS_ENABLED", "false")
 def env_bool(name: str, default: bool) -> bool:
     """Parse a boolean env var. "0"/"false"/"no"/"off" all read as False,
     unlike a bare getenv() truthiness check."""
-    raw: Optional[str] = os.getenv(name)
+    raw: str | None = os.getenv(name)
     if raw is None:
         return default
     return raw.strip().lower() in ("1", "true", "yes", "on")
@@ -45,7 +44,7 @@ ASR_MODEL_NAME: str = os.getenv("ASR_MODEL", "multilingual_large_ctc")
 EMO_MODEL_NAME: str = os.getenv("EMO_MODEL", "emo")
 FP16_ENCODER: bool = env_bool("FP16", True)
 
-DEVICE_OVERRIDE: Optional[str] = os.getenv("DEVICE", None)
+DEVICE_OVERRIDE: str | None = os.getenv("DEVICE", None)
 
 # beam (hotword-boosted CTC prefix beam search) or greedy, the escape hatch.
 DECODER: str = os.getenv("DECODER", "beam").strip().lower()
@@ -88,8 +87,8 @@ DIARIZE_MONO: bool = env_bool("DIARIZE_MONO", True)
 DIARIZATION_DIR: str = os.getenv("DIARIZATION_DIR") or str(
     Path(__file__).resolve().parent.parent.parent / "model_weights" / "speaker_diarization" / "community-1"
 )
-DIARIZATION_MIN_SPEAKERS: Optional[int] = env_int("DIARIZATION_MIN_SPEAKERS", 0) or None
-DIARIZATION_MAX_SPEAKERS: Optional[int] = env_int("DIARIZATION_MAX_SPEAKERS", 0) or None
+DIARIZATION_MIN_SPEAKERS: int | None = env_int("DIARIZATION_MIN_SPEAKERS", 0) or None
+DIARIZATION_MAX_SPEAKERS: int | None = env_int("DIARIZATION_MAX_SPEAKERS", 0) or None
 
 # LLM normalisation
 RUN_LLM: bool = env_bool("RUN_LLM", True)
@@ -98,7 +97,7 @@ RUN_LLM: bool = env_bool("RUN_LLM", True)
 LLM_ALLOW_EXTERNAL: bool = env_bool("LLM_ALLOW_EXTERNAL", False)
 # Hosts that are not loopback but still never leave the machine -- e.g. the
 # `litellm` service on the compose network. Comma-separated.
-LLM_INTERNAL_HOSTS: Tuple[str, ...] = tuple(
+LLM_INTERNAL_HOSTS: tuple[str, ...] = tuple(
     h.strip().lower() for h in os.getenv("LLM_INTERNAL_HOSTS", "").split(",") if h.strip()
 )
 LLM_TIMEOUT: float = env_float("LLM_TIMEOUT", 120.0)

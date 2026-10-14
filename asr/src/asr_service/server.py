@@ -14,17 +14,15 @@ for the guaranteed shape and pipeline.py for the actual work.
 import json
 import logging
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 import litserve as ls
 import torch
 from fastapi import Request
 
-from asr_service import asr
+from asr_service import asr, config, vad
 from asr_service import audio as audio_mod
-from asr_service import config
 from asr_service import pipeline as pipeline_mod
-from asr_service import vad
 
 logger = logging.getLogger("asr_service.server")
 
@@ -35,7 +33,7 @@ def _resolve_device() -> str:
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 
-def _form_bool(raw: Any, default: Optional[bool]) -> Optional[bool]:
+def _form_bool(raw: Any, default: bool | None) -> bool | None:
     """Form fields arrive as strings; "0"/"false"/"no"/"off" must read False."""
     if raw is None:
         return default
@@ -79,14 +77,14 @@ class AnalyzeAPI(ls.LitAPI):
         except Exception:
             logger.exception("warmup failed (non-fatal; the first real request might pay the cost instead)")
 
-    def decode_request(self, request: Request) -> Dict[str, Any]:
+    def decode_request(self, request: Request) -> dict[str, Any]:
         """
         `request` MUST stay a fastapi's Request object: LitServe reads this
         annotation to unwrap the body into form data (server.py compares it
         against fastapi.Request). Anything else and every upload 422s.
         """
         raw = None
-        options: Dict[str, Any] = {"speaker_map": None, "run_llm": None, "hotwords": None}
+        options: dict[str, Any] = {"speaker_map": None, "run_llm": None, "hotwords": None}
 
         if hasattr(request, "get"):
             f = request.get("audio")
@@ -110,7 +108,7 @@ class AnalyzeAPI(ls.LitAPI):
 
         return {"raw": raw, "options": options, "t0": time.perf_counter()}
 
-    def predict(self, item: Dict[str, Any]) -> Dict[str, Any]:
+    def predict(self, item: dict[str, Any]) -> dict[str, Any]:
         try:
             result = pipeline_mod.analyze_audio(item["raw"], **item["options"])
         except Exception as exc:                                    # noqa: BLE001
@@ -119,7 +117,7 @@ class AnalyzeAPI(ls.LitAPI):
         result["meta"]["timings"]["request_total"] = round(time.perf_counter() - item["t0"], 3)
         return result
 
-    def encode_response(self, output: Dict[str, Any]) -> Dict[str, Any]:
+    def encode_response(self, output: dict[str, Any]) -> dict[str, Any]:
         return output
 
 

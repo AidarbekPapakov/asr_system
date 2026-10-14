@@ -9,9 +9,9 @@ Weights are in natural log units added to the beam ranking, so 6.0 is worth
 """
 
 import math
-from typing import Dict, Sequence, Tuple
+from collections.abc import Sequence
 
-HOTWORDS: Dict[str, float] = {
+HOTWORDS: dict[str, float] = {
     # "example": 5.0,
 }
 
@@ -22,8 +22,8 @@ MAX_HOTWORD_WEIGHT = 10.0
 
 
 def validate_hotwords(
-    hotwords: Dict[str, float], vocab: Sequence[str], max_weight: float = MAX_HOTWORD_WEIGHT
-) -> Tuple[Dict[str, float], Dict[str, str]]:
+    hotwords: dict[str, float], vocab: Sequence[str], max_weight: float = MAX_HOTWORD_WEIGHT
+) -> tuple[dict[str, float], dict[str, str]]:
     """Segregate invalid `hotwords` from the valid ones, explicitly stating the reason for
     the latter.
 
@@ -57,8 +57,8 @@ def validate_hotwords(
 
 
 def sanitize_hotwords(
-    hotwords: Dict[str, float], vocab: Sequence[str], verbose: bool = True
-) -> Dict[str, float]:
+    hotwords: dict[str, float], vocab: Sequence[str], verbose: bool = True
+) -> dict[str, float]:
     """Drop hotwords that cannot work, saying why. See `validate_hotwords`."""
     ok, rejected = validate_hotwords(hotwords, vocab)
     if verbose:

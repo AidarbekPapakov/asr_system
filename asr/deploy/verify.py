@@ -27,7 +27,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC = REPO_ROOT / "src"
@@ -36,13 +36,12 @@ sys.path.insert(0, str(SRC))
 import httpx  # noqa: E402
 
 from asr_service import client as service_client  # noqa: E402
-from asr_service import config  # noqa: E402
-from asr_service import contract  # noqa: E402
+from asr_service import config, contract  # noqa: E402
 
 SAMPLES_DIR = REPO_ROOT / "samples"
 
 # (filename, human label, is the mono case)
-VERIFICATION_SAMPLES: List[Tuple[str, str, bool]] = [
+VERIFICATION_SAMPLES: list[tuple[str, str, bool]] = [
     ("a158dec538524111b13b6731fa6a153e.mp3", "degenerate 0.7s stereo (p_min)", False),
     ("9b2584c9e8334b13aae002353676b171.mp3", "28.3s stereo (p25)", False),
     ("cac891bbacb94dd7a9b901927c11598c.mp3", "73.4s stereo (median)", False),
@@ -64,7 +63,7 @@ HEALTH_URL = SERVICE_URL.rsplit("/", 1)[0] + "/health"
 
 class Check:
     def __init__(self) -> None:
-        self.results: List[Dict[str, Any]] = []
+        self.results: list[dict[str, Any]] = []
 
     def record(self, name: str, ok: bool, detail: str = "") -> None:
         self.results.append({"name": name, "ok": bool(ok), "detail": detail})
@@ -93,7 +92,7 @@ def wait_for_health(timeout: float = 420.0) -> None:
     raise TimeoutError(f"{HEALTH_URL} did not become healthy within {timeout}s (last error: {last_err})")
 
 
-def gpu_mem_used_mb() -> Optional[float]:
+def gpu_mem_used_mb() -> float | None:
     try:
         out = subprocess.run(
             ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
@@ -104,14 +103,14 @@ def gpu_mem_used_mb() -> Optional[float]:
         return None
 
 
-def tree_rss_mb(pid: Optional[int]) -> Optional[float]:
+def tree_rss_mb(pid: int | None) -> float | None:
     """Resident memory of a process and every descendant. LitServe runs the
     models in worker processes, so the parent's own RSS says nothing."""
     if pid is None:
         return None
     try:
-        children: Dict[int, List[int]] = {}
-        rss: Dict[int, float] = {}
+        children: dict[int, list[int]] = {}
+        rss: dict[int, float] = {}
         for entry in Path("/proc").iterdir():
             if not entry.name.isdigit():
                 continue
@@ -133,13 +132,13 @@ def tree_rss_mb(pid: Optional[int]) -> Optional[float]:
 
 # functional checks
 
-def _max_word_span(res: Dict[str, Any]) -> float:
+def _max_word_span(res: dict[str, Any]) -> float:
     return max(
         (w["end"] - w["start"] for ch in res["channels"] for w in ch["words"]), default=0.0
     )
 
 
-def _word_order_problems(res: Dict[str, Any]) -> List[str]:
+def _word_order_problems(res: dict[str, Any]) -> list[str]:
     """Words must be ordered and must not overlap within a channel -- the
     externally visible consequence of vad.group_regions' non-overlap clamp,
     which is what stops the same audio being transcribed into two places."""
@@ -151,7 +150,7 @@ def _word_order_problems(res: Dict[str, Any]) -> List[str]:
     return problems
 
 
-def _timestamp_problems(res: Dict[str, Any], duration: float) -> List[str]:
+def _timestamp_problems(res: dict[str, Any], duration: float) -> list[str]:
     problems = []
     for ch in res["channels"]:
         for w in ch["words"]:
@@ -163,7 +162,7 @@ def _timestamp_problems(res: Dict[str, Any], duration: float) -> List[str]:
     return problems
 
 
-def _word_silence_problems(res: Dict[str, Any]) -> List[str]:
+def _word_silence_problems(res: dict[str, Any]) -> list[str]:
     """The `васвы` guard: GigaAM once welded ~9 s of silence into a single
     "word". A flat span ceiling cannot express this -- the model legitimately
     emits no space token across short pauses -- so the invariant is that no
@@ -185,7 +184,7 @@ def _word_silence_problems(res: Dict[str, Any]) -> List[str]:
     return problems
 
 
-def _word_turn_mismatch(res: Dict[str, Any]) -> Optional[str]:
+def _word_turn_mismatch(res: dict[str, Any]) -> str | None:
     n_words = sum(len(ch["words"]) for ch in res["channels"])
     n_turn_words = sum(len(t["text_raw"].split()) for t in res["turns"])
     if n_words != n_turn_words:
@@ -193,7 +192,7 @@ def _word_turn_mismatch(res: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def run_functional_checks(res: Dict[str, Any], is_mono: bool, analyses_on: bool) -> Check:
+def run_functional_checks(res: dict[str, Any], is_mono: bool, analyses_on: bool) -> Check:
     c = Check()
     try:
         contract.assert_contract(res)
@@ -231,7 +230,7 @@ def run_functional_checks(res: Dict[str, Any], is_mono: bool, analyses_on: bool)
     return c
 
 
-def check_gating_and_laziness(path: Path, server_pid: Optional[int]) -> Check:
+def check_gating_and_laziness(path: Path, server_pid: int | None) -> Check:
     """Check 11. Must run FIRST, on a server that has not yet been asked for
     emotion or gender -- that is the only moment the lazy load is observable.
     """
@@ -321,7 +320,7 @@ def check_external_guard() -> Check:
     return c
 
 
-def check_llm_normalization() -> Optional[Check]:
+def check_llm_normalization() -> Check | None:
     base_url = os.getenv("LLM_BASE_URL")
     api_key = os.getenv("LLM_API_KEY")
     model_name = os.getenv("LLM_MODEL")
@@ -353,7 +352,7 @@ def check_llm_normalization() -> Optional[Check]:
 
 # driver
 
-def run_one(path: Path, **options: Any) -> Tuple[Dict[str, Any], float]:
+def run_one(path: Path, **options: Any) -> tuple[dict[str, Any], float]:
     t0 = time.perf_counter()
     res = service_client.analyze(str(path), endpoint_url=SERVICE_URL, timeout=900.0, **options)
     return res, time.perf_counter() - t0
@@ -398,7 +397,7 @@ def main() -> int:
         all_ok = c11.all_ok
         print()
 
-        rows: List[Dict[str, Any]] = []
+        rows: list[dict[str, Any]] = []
         for filename, label, is_mono in samples:
             print(f"=== {filename}  ({label}) ===")
             res, wall = run_one(SAMPLES_DIR / filename, analyze_emotion=True, analyze_gender=True)

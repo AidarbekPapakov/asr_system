@@ -22,14 +22,14 @@ useful when a caller wants to boost different words per request without
 rebuilding the decoder.
 
 Why this exists: CTC assumes frames are conditionally independent given the
-audio (P(X)=P(X|Y)), so the head has almost no language modeling capabilities. 
-Greedy decoding returns the best *alignment* for the current frame; 
-summing alignments per prefix returns the best *label sequence*, 
+audio (P(X)=P(X|Y)), so the head has almost no language modeling capabilities.
+Greedy decoding returns the best *alignment* for the current frame;
+summing alignments per prefix returns the best *label sequence*,
 and -- more usefully -- gives you hypotheses to re-rank with
 knowledge the acoustic model cannot have.
 """
 
-from typing import Dict, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 import numpy as np
 import torch
@@ -54,8 +54,8 @@ class _Beam:
     def __init__(self):
         self.p_b = NEG_INF      # log P(prefix, alignment ends in blank)
         self.p_nb = NEG_INF     # log P(prefix, alignment ends in the last symbol)
-        self.ids: Tuple[int, ...] = ()
-        self.frames: Tuple[int, ...] = ()
+        self.ids: tuple[int, ...] = ()
+        self.frames: tuple[int, ...] = ()
         self.word = ""          # characters since the last space
         self.hw = 0.0           # bonus banked on completed hotwords
         self.hw_part = 0.0      # provisional credit, refunded if the word does not complete
@@ -73,7 +73,7 @@ class CTCBeamDecoding:
         beam_width: int = 25,
         top_k: int = 8,
         prune_logp: float = -12.0,
-        hotwords: Optional[Dict[str, float]] = None,
+        hotwords: dict[str, float] | None = None,
         lm=None,                 # kenlm.Model, or None
         alpha: float = 0.5,      # LM weight
         trace=None,              # optional callback(t, beams, self) for debugging
@@ -91,16 +91,16 @@ class CTCBeamDecoding:
         self.set_hotwords(hotwords)
         self.lm, self.alpha, self.beta = lm, alpha, beta
         self.trace = trace
-        self.last_beams: Dict = {}   # final beam set, kept for inspection
+        self.last_beams: dict = {}   # final beam set, kept for inspection
 
         # Kept so `model.decoding.tokenizer` still resolves for callers that use it.
         from gigaam.decoding import Tokenizer
 
         self.tokenizer = Tokenizer(self.vocab, None)
 
-    def set_hotwords(self, hotwords: Optional[Dict[str, float]]) -> None:
+    def set_hotwords(self, hotwords: dict[str, float] | None) -> None:
         """
-        Specify hotwords. Passing `None` or `{}` clears it, nullifying any boosting 
+        Specify hotwords. Passing `None` or `{}` clears it, nullifying any boosting
         """
         self.hotwords = {w.lower(): float(v) for w, v in (hotwords or {}).items()}
 
@@ -123,7 +123,7 @@ class CTCBeamDecoding:
         nothing otherwise."""
         return self.hotwords.get(word, 0.0) if self.hotwords else 0.0
 
-    def _lm_delta(self, history: Tuple[str, ...], word: str) -> float:
+    def _lm_delta(self, history: tuple[str, ...], word: str) -> float:
         if self.lm is None or not word:
             return 0.0
         ctx = " ".join(history[-4:] + (word,))
@@ -136,10 +136,10 @@ class CTCBeamDecoding:
         return (b.total() + self.alpha * b.lm + self.beta * b.n_words
                 + b.hw + b.hw_part)
 
-    def _decode_one(self, lp: np.ndarray) -> Tuple[str, List[int], List[int]]:
+    def _decode_one(self, lp: np.ndarray) -> tuple[str, list[int], list[int]]:
         init = _Beam()
         init.p_b = 0.0
-        beams: Dict[Tuple[int, ...], _Beam] = {(): init}
+        beams: dict[tuple[int, ...], _Beam] = {(): init}
 
         for t in range(lp.shape[0]):
             frame = lp[t]
@@ -149,7 +149,7 @@ class CTCBeamDecoding:
             if self.blank_id not in cand:
                 cand.append(self.blank_id)
 
-            nxt: Dict[Tuple[int, ...], _Beam] = {}
+            nxt: dict[tuple[int, ...], _Beam] = {}
 
             def get(ids, parent) -> _Beam:
                 b = nxt.get(ids)

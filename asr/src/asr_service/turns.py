@@ -11,7 +11,6 @@ never changes after construction.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 from asr_service import config
 from asr_service.asr import Word
@@ -26,7 +25,7 @@ class Turn:
     end: float
     text: str
     text_raw: str = ""
-    lang: Optional[str] = None
+    lang: str | None = None
     overlap: bool = False   # someone else was talking at the same time
 
     def __post_init__(self) -> None:
@@ -35,12 +34,12 @@ class Turn:
 
 
 def words_to_turns(
-    words: List[Word], speaker: str, channel: int = -1, turn_gap: Optional[float] = None
-) -> List[Turn]:
+    words: list[Word], speaker: str, channel: int = -1, turn_gap: float | None = None
+) -> list[Turn]:
     """Break one channel's words into turns on any silence wider than turn_gap."""
     turn_gap = config.TURN_GAP if turn_gap is None else turn_gap
-    turns: List[Turn] = []
-    group: List[Word] = []
+    turns: list[Turn] = []
+    group: list[Word] = []
 
     def flush() -> None:
         if group:
@@ -57,9 +56,9 @@ def words_to_turns(
     return turns
 
 
-def merge_channels(per_channel: Dict[int, List[Word]], channel_speaker: Dict[int, str]) -> List[Turn]:
+def merge_channels(per_channel: dict[int, list[Word]], channel_speaker: dict[int, str]) -> list[Turn]:
     """Interleave both channels by time, number the turns, flag overlaps."""
-    turns: List[Turn] = []
+    turns: list[Turn] = []
     for ch, words in per_channel.items():
         turns.extend(words_to_turns(words, channel_speaker.get(ch, f"channel_{ch}"), channel=ch))
     turns.sort(key=lambda t: (t.start, t.end))

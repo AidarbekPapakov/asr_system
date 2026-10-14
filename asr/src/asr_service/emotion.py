@@ -3,7 +3,6 @@ Slight modification of GigaAMEmo emotion model, that targets `.get_probs`
 (third_party/GigaAM/gigaam/model.py:272), which collapses 4-class into 3-class labels.
 """
 
-from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
@@ -39,7 +38,7 @@ def ensure_loaded(device: str):
 
 
 @torch.inference_mode()
-def probs_batch(wavs: List[np.ndarray]) -> List[Dict[str, float]]:
+def probs_batch(wavs: list[np.ndarray]) -> list[dict[str, float]]:
     """Raw 4-class probabilities per input waveform, batched in one forward
     pass. The result is index-aligned with `wavs`, so every waveform must be
     non-empty -- callers slice with a minimum length for exactly that reason."""
@@ -68,7 +67,7 @@ def probs_batch(wavs: List[np.ndarray]) -> List[Dict[str, float]]:
     return [{id2name[i]: p[i] for i in range(len(id2name))} for p in probs]
 
 
-def collapse_emotion(probs4: Dict[str, float]) -> Tuple[str, Dict[str, float]]:
+def collapse_emotion(probs4: dict[str, float]) -> tuple[str, dict[str, float]]:
     """4-class probs -> (label, 3-class distribution)."""
     dist3 = {"negative": 0.0, "neutral": 0.0, "positive": 0.0}
     for name, p in probs4.items():

@@ -12,7 +12,6 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Tuple
 
 import librosa
 import numpy as np
@@ -23,7 +22,7 @@ from asr_service import config
 
 @dataclass
 class AudioBundle:
-    channels_16k: List[np.ndarray]   # float32 mono, 16 kHz, one per channel
+    channels_16k: list[np.ndarray]   # float32 mono, 16 kHz, one per channel
     native_sr: int                   # the file's own rate, for the wire contract
     duration_sec: float
     is_mono: bool
@@ -38,7 +37,7 @@ def decode_upload(raw: bytes) -> AudioBundle:
     is_mono = n_channels == 1
     duration_sec = data.shape[0] / sr if sr else 0.0
 
-    channels_16k: List[np.ndarray] = []
+    channels_16k: list[np.ndarray] = []
     for i in range(n_channels):
         ch = np.ascontiguousarray(data[:, i], dtype=np.float32)
         if sr != config.SAMPLE_RATE and ch.size:
@@ -55,7 +54,7 @@ def decode_upload(raw: bytes) -> AudioBundle:
     )
 
 
-def _read_any(raw: bytes) -> Tuple[np.ndarray, int]:
+def _read_any(raw: bytes) -> tuple[np.ndarray, int]:
     try:
         data, sr = sf.read(io.BytesIO(raw), dtype="float32", always_2d=True)
         return data, sr
@@ -63,7 +62,7 @@ def _read_any(raw: bytes) -> Tuple[np.ndarray, int]:
         return _ffmpeg_fallback(raw)
 
 
-def _ffmpeg_fallback(raw: bytes) -> Tuple[np.ndarray, int]:
+def _ffmpeg_fallback(raw: bytes) -> tuple[np.ndarray, int]:
     """Re-encode to PCM WAV at the source's own rate (no forced resample --
     that happens uniformly afterwards) for whatever soundfile would not read
     directly (some mp3 encodings, mostly)."""
