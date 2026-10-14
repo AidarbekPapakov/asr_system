@@ -136,6 +136,19 @@ class CTCBeamDecoding:
         return (b.total() + self.alpha * b.lm + self.beta * b.n_words
                 + b.hw + b.hw_part)
 
+    def _get_beam(self, nxt: dict[tuple[int, ...], "_Beam"], ids: tuple[int, ...], parent: "_Beam") -> "_Beam":
+        """Fetch-or-create `ids`' beam in `nxt`, copying the carry-over state
+        from `parent` the first time it is created this frame."""
+        b = nxt.get(ids)
+        if b is None:
+            b = _Beam()
+            b.ids, b.frames = ids, parent.frames
+            b.word, b.hw, b.hw_part, b.lm, b.n_words = (
+                parent.word, parent.hw, parent.hw_part,
+                parent.lm, parent.n_words)
+            nxt[ids] = b
+        return b
+
     def _decode_one(self, lp: np.ndarray) -> tuple[str, list[int], list[int]]:
         init = _Beam()
         init.p_b = 0.0
@@ -151,30 +164,19 @@ class CTCBeamDecoding:
 
             nxt: dict[tuple[int, ...], _Beam] = {}
 
-            def get(ids, parent) -> _Beam:
-                b = nxt.get(ids)
-                if b is None:
-                    b = _Beam()
-                    b.ids, b.frames = ids, parent.frames
-                    b.word, b.hw, b.hw_part, b.lm, b.n_words = (
-                        parent.word, parent.hw, parent.hw_part,
-                        parent.lm, parent.n_words)
-                    nxt[ids] = b
-                return b
-
             for ids, beam in beams.items():
                 last = ids[-1] if ids else None
                 for c in cand:
                     p = float(frame[c])
 
                     if c == self.blank_id:
-                        nb = get(ids, beam)
+                        nb = self._get_beam(nxt, ids, beam)
                         nb.p_b = _logaddexp(nb.p_b, beam.total() + p)
                         continue
 
                     if c == last:
                         # repeat with no blank between -> collapses, same prefix
-                        nb = get(ids, beam)
+                        nb = self._get_beam(nxt, ids, beam)
                         nb.p_nb = _logaddexp(nb.p_nb, beam.p_nb + p)
                         # blank between -> genuine doubled character
                         src = beam.p_b
@@ -184,7 +186,7 @@ class CTCBeamDecoding:
                         continue
 
                     new_ids = ids + (c,)
-                    nb = get(new_ids, beam)
+                    nb = self._get_beam(nxt, new_ids, beam)
                     if not nb.frames or len(nb.frames) < len(new_ids):
                         nb.frames = beam.frames + (t,)
                     nb.p_nb = _logaddexp(nb.p_nb, src + p)
