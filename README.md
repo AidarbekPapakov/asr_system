@@ -65,8 +65,9 @@ The first start of `asr_service` downloads the GigaAM ASR checkpoint (2.3 GB),
 so it reports `unhealthy` until that download finishes. See
 [Troubleshooting](#troubleshooting) if the download stalls.
 
-This stack uses the same host ports as `~/projects/llm_local_inference_llama`,
-so stop that one first if it's running.
+This stack claims ports that another local llama.cpp/LiteLLM/Langfuse stack
+on the same machine might already be using, so stop that one first if it's
+running.
 
 ## Usage
 

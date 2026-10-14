@@ -58,10 +58,10 @@ curl -s localhost:8400/health
 ```
 
 It publishes 8400 and runs on CPU by default (see the compose file's header
-for the GPU switch). `model_weights/` is mounted at `/models`: the
-diarization pipeline ships there; the gender weights have to be added
-yourself (see `model_weights/README.md`) -- unless `MODEL_WEIGHTS_DIR` points
-somewhere else.
+for the GPU switch). `model_weights/` is mounted at `/models`: fetch the
+diarization snapshot with `../scripts/download_weights.sh` first, and add the
+gender weights yourself (see `model_weights/README.md`) -- unless
+`MODEL_WEIGHTS_DIR` points somewhere else.
 
 ## CI/CD
 

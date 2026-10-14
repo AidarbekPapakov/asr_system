@@ -11,8 +11,8 @@ in the response assumes a particular consumer, so it is meant to be extended:
 add the analyses and the response keys your caller needs on top of a base
 that stays generic.
 
-It runs as part of `../stack` (see `../CLAUDE.md`), which provides the
-llama.cpp + LiteLLM + Langfuse services the LLM pass goes through.
+It runs as part of `../stack`, which provides the llama.cpp + LiteLLM +
+Langfuse services the LLM pass goes through -- see the root `README.md`.
 
 ## Layout
 
