@@ -10,12 +10,16 @@ points elsewhere, e.g. at a shared volume).
 
 `speaker_diarization/community-1/` is a local snapshot of
 [pyannote/speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1)
-(~32 MB, ships here). The HF repo is gated, so it is read from disk rather than
-downloaded at run time. To refresh it, accept the terms on HF and:
+(~32 MB). The HF repo is gated and not shipped in this repo (`*.bin` / `*.npz`
+are gitignored), so it is read from disk rather than downloaded at run time --
+fetch it first with:
 
 ```bash
-hf download pyannote/speaker-diarization-community-1 --local-dir speaker_diarization/community-1
+HF_TOKEN=hf_... ../scripts/download_weights.sh
 ```
+
+which fails with a clear message if `HF_TOKEN` is missing or the gated terms
+were not accepted.
 
 `gender_classifier.pth` is **not** shipped (`*.pth` / `*.pt` are gitignored);
 drop it in from your model registry.

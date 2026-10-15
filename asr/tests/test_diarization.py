@@ -3,12 +3,19 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-import numpy as np
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-import config
-from diarization import tracks_from_annotation
+from asr_service import config
+
+try:
+    import numpy as np
+
+    from asr_service.diarization import tracks_from_annotation
+    _MODELS_AVAILABLE = True
+except ImportError:
+    _MODELS_AVAILABLE = False
+
+requires_models = unittest.skipUnless(_MODELS_AVAILABLE, "requires_models: needs numpy/torch")
 
 
 class FakeAnnotation:
@@ -26,6 +33,7 @@ class FakeAnnotation:
 SR = config.SAMPLE_RATE
 
 
+@requires_models
 class TestTracksFromAnnotation(unittest.TestCase):
     def setUp(self):
         self.wav = np.arange(4 * SR, dtype=np.float32) + 1.0   # never zero

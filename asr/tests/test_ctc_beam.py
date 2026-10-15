@@ -2,20 +2,27 @@ import sys
 import unittest
 from pathlib import Path
 
-import numpy as np
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from ctc_beam import CTCBeamDecoding
+try:
+    import numpy as np
+
+    from asr_service.ctc_beam import CTCBeamDecoding
+
+    def _peaked_row(target_idx: int, n_classes: int, target_p: float = 0.9) -> np.ndarray:
+        """A near one-hot log-prob row: target_p on target_idx, the rest split evenly."""
+        row = np.full(n_classes, np.log((1.0 - target_p) / (n_classes - 1)))
+        row[target_idx] = np.log(target_p)
+        return row
+
+    _MODELS_AVAILABLE = True
+except ImportError:
+    _MODELS_AVAILABLE = False
+
+requires_models = unittest.skipUnless(_MODELS_AVAILABLE, "requires_models: needs numpy/torch/gigaam")
 
 
-def _peaked_row(target_idx: int, n_classes: int, target_p: float = 0.9) -> np.ndarray:
-    """A near one-hot log-prob row: target_p on target_idx, the rest split evenly."""
-    row = np.full(n_classes, np.log((1.0 - target_p) / (n_classes - 1)))
-    row[target_idx] = np.log(target_p)
-    return row
-
-
+@requires_models
 class TestPeakedDecode(unittest.TestCase):
     """A clearly peaked path decodes to the expected text."""
 
@@ -36,6 +43,7 @@ class TestPeakedDecode(unittest.TestCase):
         self.assertEqual(list(frames), sorted(frames))
 
 
+@requires_models
 class TestCTCCollapse(unittest.TestCase):
     """Repeated symbol without an intervening blank collapses to one character;
     with a blank between, it is a genuine doubled character."""
@@ -59,6 +67,7 @@ class TestCTCCollapse(unittest.TestCase):
         self.assertEqual(len(ids), 2)
 
 
+@requires_models
 class TestHotwordBoost(unittest.TestCase):
     """A hotword's partial credit can flip an acoustically close decision
     toward it, and clearing the hotwords removes the effect again."""

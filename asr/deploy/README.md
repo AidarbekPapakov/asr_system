@@ -7,7 +7,7 @@ uv venv --python 3.11 .venv
 uv pip install --python .venv/bin/python --torch-backend=cu129 -r deploy/requirements.txt
 cp deploy/.env.example deploy/.env   # fill in HF_TOKEN at least
 set -a; source deploy/.env; set +a
-PYTHONPATH=src .venv/bin/python src/server.py
+PYTHONPATH=src .venv/bin/python -m asr_service.server
 ```
 
 ```bash
@@ -58,15 +58,20 @@ curl -s localhost:8400/health
 ```
 
 It publishes 8400 and runs on CPU by default (see the compose file's header
-for the GPU switch). `model_weights/` is mounted at `/models`: the
-diarization pipeline ships there; the gender weights have to be added
-yourself (see `model_weights/README.md`) -- unless `MODEL_WEIGHTS_DIR` points
-somewhere else.
+for the GPU switch). `model_weights/` is mounted at `/models`: fetch the
+diarization snapshot with `../scripts/download_weights.sh` first, and add the
+gender weights yourself (see `model_weights/README.md`) -- unless
+`MODEL_WEIGHTS_DIR` points somewhere else.
 
 ## CI/CD
 
-`../.gitlab-ci.yml` runs on every MR and on `main`: lint, then the image builds,
-then `tests/` runs inside that image. Reproduce it locally with:
+There are two pipelines. `../.gitlab-ci.yml` runs the full thing (lint, the
+13 GB image build, then `tests/` with torch/gigaam inside that image) on a
+self-hosted runner; `../../.github/workflows/ci.yml` runs on GitHub's free
+runners instead, so it only lints and runs the tests that don't need
+torch/gigaam (those are skipped via the `requires_models` marker on
+`test_ctc_beam.py` / `test_diarization.py`). Reproduce the GitLab one locally
+with:
 
 ```bash
 docker run --rm -v "$PWD/..":/src -w /src ghcr.io/astral-sh/ruff:0.16.8 check .

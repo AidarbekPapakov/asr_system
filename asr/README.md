@@ -11,13 +11,13 @@ in the response assumes a particular consumer, so it is meant to be extended:
 add the analyses and the response keys your caller needs on top of a base
 that stays generic.
 
-It runs as part of `../stack` (see `../CLAUDE.md`), which provides the
-llama.cpp + LiteLLM + Langfuse services the LLM pass goes through.
+It runs as part of `../stack`, which provides the llama.cpp + LiteLLM +
+Langfuse services the LLM pass goes through -- see the root `README.md`.
 
 ## Layout
 
 ```
-src/
+src/asr_service/
   config.py          every knob, env override, one place
   audio.py           upload bytes -> per-channel float32 @16 kHz
   diarization.py     mono -> one track per speaker (pyannote community-1)
@@ -100,7 +100,7 @@ know the count in advance.
 ```
 
 `emotion` and `gender` are left out when not requested; they are never
-`null`. `src/contract.py` is the authoritative statement of what is
+`null`. `src/asr_service/contract.py` is the authoritative statement of what is
 guaranteed.
 
 ## What each part costs you

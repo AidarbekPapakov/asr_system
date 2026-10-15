@@ -1,0 +1,30 @@
+# Lint + the ASR service's light unit tests, on GitHub's free runners.
+# See asr/.gitlab-ci.yml for the full pipeline (lint, image build, the full
+# test suite with torch/gigaam inside that image) on a self-hosted runner --
+# its 13 GB image doesn't fit here, so this workflow never installs torch,
+# and tests/*'s `requires_models` skip marker takes care of the rest.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker run --rm -v "$PWD/asr":/src -w /src ghcr.io/astral-sh/ruff:0.16.8 check .
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # No torch/numpy/gigaam installed here on purpose: the heavy tests
+      # (ctc_beam, diarization) are guarded with a requires_models skip and
+      # report "skipped", not "failed", when those imports are missing.
+      - run: python -m unittest discover -s asr/tests -v

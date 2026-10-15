@@ -48,12 +48,15 @@ git -C stack/litellm checkout db37977307853b9d2c2f740ca2cbcaefef06982c
 # 2. HF token for the ASR service
 echo 'HF_TOKEN=hf_...' > asr/deploy/.env
 
-# 3. Stack config and secrets (LiteLLM master key, Langfuse keys and admin password)
+# 3. Diarization snapshot (gated on HF; accept the terms first, see asr/model_weights/README.md)
+HF_TOKEN=hf_... asr/scripts/download_weights.sh
+
+# 4. Stack config and secrets (LiteLLM master key, Langfuse keys and admin password)
 cd stack
 cp .env.example .env
 sh secrets/gen.sh >> .env
 
-# 4. Build and start everything
+# 5. Build and start everything
 docker compose up -d --build
 docker compose ps
 ```
@@ -62,8 +65,9 @@ The first start of `asr_service` downloads the GigaAM ASR checkpoint (2.3 GB),
 so it reports `unhealthy` until that download finishes. See
 [Troubleshooting](#troubleshooting) if the download stalls.
 
-This stack uses the same host ports as `~/projects/llm_local_inference_llama`,
-so stop that one first if it's running.
+This stack claims ports that another local llama.cpp/LiteLLM/Langfuse stack
+on the same machine might already be using, so stop that one first if it's
+running.
 
 ## Usage
 
@@ -106,8 +110,8 @@ diarization ~10–14 s, VAD+ASR ~3 s, LLM ~24 s.
 | Which LLM to serve | `stack/llamacpp/model.env` |
 | GPU attachments | `COMPOSE_FILE` in `stack/.env` |
 | ASR on GPU | `ASR_DEVICE=cuda` in `stack/.env`, and add `:overrides/asr-gpu.override.yml` to `COMPOSE_FILE`. The LLM will probably need fewer GPU layers or less context to make room. |
-| ASR knobs (decoder, VAD, diarization speaker bounds, …) | `asr/deploy/.env`. Every option is listed in `asr/deploy/.env.example` and `asr/src/config.py`. |
-| Default hotwords | `asr/src/hotwords.py` (or per request with `hotwords`) |
+| ASR knobs (decoder, VAD, diarization speaker bounds, …) | `asr/deploy/.env`. Every option is listed in `asr/deploy/.env.example` and `asr/src/asr_service/config.py`. |
+| Default hotwords | `asr/src/asr_service/hotwords.py` (or per request with `hotwords`) |
 
 ## Troubleshooting
 

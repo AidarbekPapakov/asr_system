@@ -27,7 +27,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC = REPO_ROOT / "src"
@@ -35,14 +35,13 @@ sys.path.insert(0, str(SRC))
 
 import httpx  # noqa: E402
 
-import client as service_client  # noqa: E402
-import config  # noqa: E402
-import contract  # noqa: E402
+from asr_service import client as service_client  # noqa: E402
+from asr_service import config, contract  # noqa: E402
 
 SAMPLES_DIR = REPO_ROOT / "samples"
 
 # (filename, human label, is the mono case)
-VERIFICATION_SAMPLES: List[Tuple[str, str, bool]] = [
+VERIFICATION_SAMPLES: list[tuple[str, str, bool]] = [
     ("a158dec538524111b13b6731fa6a153e.mp3", "degenerate 0.7s stereo (p_min)", False),
     ("9b2584c9e8334b13aae002353676b171.mp3", "28.3s stereo (p25)", False),
     ("cac891bbacb94dd7a9b901927c11598c.mp3", "73.4s stereo (median)", False),
@@ -64,7 +63,7 @@ HEALTH_URL = SERVICE_URL.rsplit("/", 1)[0] + "/health"
 
 class Check:
     def __init__(self) -> None:
-        self.results: List[Dict[str, Any]] = []
+        self.results: list[dict[str, Any]] = []
 
     def record(self, name: str, ok: bool, detail: str = "") -> None:
         self.results.append({"name": name, "ok": bool(ok), "detail": detail})
@@ -93,7 +92,7 @@ def wait_for_health(timeout: float = 420.0) -> None:
     raise TimeoutError(f"{HEALTH_URL} did not become healthy within {timeout}s (last error: {last_err})")
 
 
-def gpu_mem_used_mb() -> Optional[float]:
+def gpu_mem_used_mb() -> float | None:
     try:
         out = subprocess.run(
             ["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
@@ -104,14 +103,14 @@ def gpu_mem_used_mb() -> Optional[float]:
         return None
 
 
-def tree_rss_mb(pid: Optional[int]) -> Optional[float]:
+def tree_rss_mb(pid: int | None) -> float | None:
     """Resident memory of a process and every descendant. LitServe runs the
     models in worker processes, so the parent's own RSS says nothing."""
     if pid is None:
         return None
     try:
-        children: Dict[int, List[int]] = {}
-        rss: Dict[int, float] = {}
+        children: dict[int, list[int]] = {}
+        rss: dict[int, float] = {}
         for entry in Path("/proc").iterdir():
             if not entry.name.isdigit():
                 continue
@@ -133,25 +132,25 @@ def tree_rss_mb(pid: Optional[int]) -> Optional[float]:
 
 # functional checks
 
-def _max_word_span(res: Dict[str, Any]) -> float:
+def _max_word_span(res: dict[str, Any]) -> float:
     return max(
         (w["end"] - w["start"] for ch in res["channels"] for w in ch["words"]), default=0.0
     )
 
 
-def _word_order_problems(res: Dict[str, Any]) -> List[str]:
+def _word_order_problems(res: dict[str, Any]) -> list[str]:
     """Words must be ordered and must not overlap within a channel -- the
     externally visible consequence of vad.group_regions' non-overlap clamp,
     which is what stops the same audio being transcribed into two places."""
     problems = []
     for ch in res["channels"]:
-        for a, b in zip(ch["words"], ch["words"][1:]):
+        for a, b in zip(ch["words"], ch["words"][1:], strict=False):  # deliberately uneven: consecutive pairs
             if b["start"] < a["end"] - ROUND_EPS:
                 problems.append(f"channel {ch['index']}: {a} then {b}")
     return problems
 
 
-def _timestamp_problems(res: Dict[str, Any], duration: float) -> List[str]:
+def _timestamp_problems(res: dict[str, Any], duration: float) -> list[str]:
     problems = []
     for ch in res["channels"]:
         for w in ch["words"]:
@@ -163,7 +162,7 @@ def _timestamp_problems(res: Dict[str, Any], duration: float) -> List[str]:
     return problems
 
 
-def _word_silence_problems(res: Dict[str, Any]) -> List[str]:
+def _word_silence_problems(res: dict[str, Any]) -> list[str]:
     """The `васвы` guard: GigaAM once welded ~9 s of silence into a single
     "word". A flat span ceiling cannot express this -- the model legitimately
     emits no space token across short pauses -- so the invariant is that no
@@ -173,7 +172,11 @@ def _word_silence_problems(res: Dict[str, Any]) -> List[str]:
     problems = []
     for ch in res["channels"]:
         regions = ch["vad"]["regions"]
-        gaps = [(a[1], b[0]) for a, b in zip(regions, regions[1:]) if b[0] - a[1] > config.MERGE_GAP]
+        gaps = [
+            (a[1], b[0])
+            for a, b in zip(regions, regions[1:], strict=False)  # deliberately uneven: consecutive pairs
+            if b[0] - a[1] > config.MERGE_GAP
+        ]
         for w in ch["words"]:
             for gap_start, gap_end in gaps:
                 silent = min(w["end"], gap_end) - max(w["start"], gap_start)
@@ -185,7 +188,7 @@ def _word_silence_problems(res: Dict[str, Any]) -> List[str]:
     return problems
 
 
-def _word_turn_mismatch(res: Dict[str, Any]) -> Optional[str]:
+def _word_turn_mismatch(res: dict[str, Any]) -> str | None:
     n_words = sum(len(ch["words"]) for ch in res["channels"])
     n_turn_words = sum(len(t["text_raw"].split()) for t in res["turns"])
     if n_words != n_turn_words:
@@ -193,7 +196,7 @@ def _word_turn_mismatch(res: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def run_functional_checks(res: Dict[str, Any], is_mono: bool, analyses_on: bool) -> Check:
+def run_functional_checks(res: dict[str, Any], is_mono: bool, analyses_on: bool) -> Check:
     c = Check()
     try:
         contract.assert_contract(res)
@@ -210,7 +213,10 @@ def run_functional_checks(res: Dict[str, Any], is_mono: bool, analyses_on: bool)
         f"3  no word straddles silence > MERGE_GAP ({config.MERGE_GAP}s)",
         not silence_problems, "; ".join(silence_problems[:3]),
     )
-    c.note(f"max word span {_max_word_span(res):.2f}s (reported, not asserted -- GigaAM glues words across short pauses)")
+    c.note(
+        f"max word span {_max_word_span(res):.2f}s "
+        "(reported, not asserted -- GigaAM glues words across short pauses)"
+    )
 
     order_problems = _word_order_problems(res)
     c.record("4  words ordered and non-overlapping per channel", not order_problems, "; ".join(order_problems[:3]))
@@ -226,12 +232,15 @@ def run_functional_checks(res: Dict[str, Any], is_mono: bool, analyses_on: bool)
 
     if is_mono:
         diar = res["meta"]["diarization"]
-        c.record("8  mono input: diarized into >=1 speaker channel", diar["applied"] and diar["n_speakers"] >= 1, str(diar))
+        c.record(
+            "8  mono input: diarized into >=1 speaker channel",
+            diar["applied"] and diar["n_speakers"] >= 1, str(diar),
+        )
 
     return c
 
 
-def check_gating_and_laziness(path: Path, server_pid: Optional[int]) -> Check:
+def check_gating_and_laziness(path: Path, server_pid: int | None) -> Check:
     """Check 11. Must run FIRST, on a server that has not yet been asked for
     emotion or gender -- that is the only moment the lazy load is observable.
     """
@@ -256,7 +265,10 @@ def check_gating_and_laziness(path: Path, server_pid: Optional[int]) -> Check:
     same_text = [t["text_raw"] for t in res_off["turns"]] == [t["text_raw"] for t in res_on["turns"]]
     c.record("11 the analyses are additive: identical words and text_raw either way", same_words and same_text)
 
-    c.note(f"wall: flags off {wall_off:.2f}s | first flags-on {wall_on_cold:.2f}s (pays the model load) | second {wall_on_warm:.2f}s")
+    c.note(
+        f"wall: flags off {wall_off:.2f}s | first flags-on {wall_on_cold:.2f}s "
+        f"(pays the model load) | second {wall_on_warm:.2f}s"
+    )
     # On a GPU the emotion checkpoint lands in VRAM, so host RSS barely moves
     # and the second number is the one that shows the lazy load; on CPU it is
     # the other way round.
@@ -286,14 +298,17 @@ def check_emotion_equivalence(sample_wav: Path) -> Check:
     try:
         from gigaam.preprocess import load_audio
 
-        import emotion
+        from asr_service import emotion
 
         model = emotion.ensure_loaded("cpu")
         ref_probs = model.get_probs(str(sample_wav))
         batch_probs = emotion.probs_batch([load_audio(str(sample_wav)).numpy()])[0]
 
         max_diff = max(abs(ref_probs[k] - batch_probs.get(k, 0.0)) for k in ref_probs)
-        c.record("7  emotion.probs_batch vs GigaAMEmo.get_probs, max abs diff < 1e-3", max_diff < 1e-3, f"max diff {max_diff:.5f}")
+        c.record(
+            "7  emotion.probs_batch vs GigaAMEmo.get_probs, max abs diff < 1e-3",
+            max_diff < 1e-3, f"max diff {max_diff:.5f}",
+        )
     except Exception as exc:                                          # noqa: BLE001
         c.record("7  emotion.probs_batch vs GigaAMEmo.get_probs", False, f"check itself failed: {exc}")
     return c
@@ -304,8 +319,8 @@ def check_emotion_equivalence(sample_wav: Path) -> Check:
 def check_external_guard() -> Check:
     """In-process, no network: the server's own env is fixed at startup, so
     this exercises normalize.run_normalization directly instead."""
-    import normalize
-    from turns import Turn
+    from asr_service import normalize
+    from asr_service.turns import Turn
 
     c = Check()
     fake_turns = [Turn(id=1, channel=0, speaker="speaker_0", start=0.0, end=1.0, text="алло")]
@@ -321,7 +336,7 @@ def check_external_guard() -> Check:
     return c
 
 
-def check_llm_normalization() -> Optional[Check]:
+def check_llm_normalization() -> Check | None:
     base_url = os.getenv("LLM_BASE_URL")
     api_key = os.getenv("LLM_API_KEY")
     model_name = os.getenv("LLM_MODEL")
@@ -329,8 +344,8 @@ def check_llm_normalization() -> Optional[Check]:
         print("    [SKIP] check 9 (LLM normalisation): LLM_BASE_URL/LLM_API_KEY/LLM_MODEL not set")
         return None
 
-    import normalize
-    from turns import Turn
+    from asr_service import normalize
+    from asr_service.turns import Turn
 
     turns_in = [
         Turn(id=1, channel=0, speaker="speaker_0", start=0.0, end=1.0, text="алло добрый день"),
@@ -346,14 +361,14 @@ def check_llm_normalization() -> Optional[Check]:
     ids_out = {t.id for t in result.turns}
     c.record("9  returned id set equals input id set", ids_in == ids_out, f"in={ids_in} out={ids_out}")
     c.record("9  validate_llm_turns did not fall back", result.applied, result.reason)
-    raw_preserved = all(out.text_raw == orig.text for out, orig in zip(result.turns, turns_in))
+    raw_preserved = all(out.text_raw == orig.text for out, orig in zip(result.turns, turns_in, strict=True))
     c.record("9  text_raw preserved", raw_preserved)
     return c
 
 
 # driver
 
-def run_one(path: Path, **options: Any) -> Tuple[Dict[str, Any], float]:
+def run_one(path: Path, **options: Any) -> tuple[dict[str, Any], float]:
     t0 = time.perf_counter()
     res = service_client.analyze(str(path), endpoint_url=SERVICE_URL, timeout=900.0, **options)
     return res, time.perf_counter() - t0
@@ -361,18 +376,21 @@ def run_one(path: Path, **options: Any) -> Tuple[Dict[str, Any], float]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--start-server", action="store_true", help="launch src/server.py and stop it at exit")
+    parser.add_argument("--start-server", action="store_true", help="launch asr_service.server and stop it at exit")
     parser.add_argument("--stress", action="store_true", help="also run the 1040s stress recording")
     args = parser.parse_args()
 
     server_proc = None
     if args.start_server:
-        print(f"starting server: python src/server.py (cwd={REPO_ROOT})")
+        print(f"starting server: python -m asr_service.server (cwd={REPO_ROOT})")
         # Own process group: LitServe's inference workers do not die with the
         # parent, and an orphan holding port 8400 silently makes the next run
         # verify the previous build.
         server_proc = subprocess.Popen(
-            [sys.executable, "src/server.py"], cwd=str(REPO_ROOT), start_new_session=True
+            [sys.executable, "-m", "asr_service.server"],
+            cwd=str(REPO_ROOT),
+            env={**os.environ, "PYTHONPATH": str(SRC)},
+            start_new_session=True,
         )
 
     try:
@@ -395,7 +413,7 @@ def main() -> int:
         all_ok = c11.all_ok
         print()
 
-        rows: List[Dict[str, Any]] = []
+        rows: list[dict[str, Any]] = []
         for filename, label, is_mono in samples:
             print(f"=== {filename}  ({label}) ===")
             res, wall = run_one(SAMPLES_DIR / filename, analyze_emotion=True, analyze_gender=True)
@@ -436,7 +454,8 @@ def main() -> int:
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
             futures = [pool.submit(run_one, SAMPLES_DIR / MEDIAN_SAMPLE) for _ in range(4)]
             walls = [f.result()[1] for f in futures]
-        print(f"    4 concurrent requests: total wall {time.perf_counter() - t0:.2f}s, per-request {['%.2f' % w for w in walls]}")
+        per_request = [f"{w:.2f}" for w in walls]
+        print(f"    4 concurrent requests: total wall {time.perf_counter() - t0:.2f}s, per-request {per_request}")
         print(f"    GPU memory used (whole device, best-effort): {gpu_mem_used_mb()} MB")
         print()
 

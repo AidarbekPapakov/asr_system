@@ -8,3 +8,4 @@ __pycache__/
 # model_weights
 *.pth
 *.pt
+model_weights/speaker_diarization/community-1/
